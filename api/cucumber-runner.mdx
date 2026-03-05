@@ -1,0 +1,184 @@
+---
+title: 'CucumberRunner'
+description: 'Main test runner class that configures and executes Cucumber test suites'
+icon: 'play'
+---
+
+## Overview
+
+The `CucumberRunner` class is the entry point for executing Cucumber tests in the Makers BTG Tests framework. It uses JUnit Platform Suite annotations to configure the Cucumber engine, specify test locations, and set up reporting plugins.
+
+## Class Definition
+
+```java
+package org.btg.practual.runners;
+
+import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
+
+import static io.cucumber.core.options.Constants.GLUE_PROPERTY_NAME;
+import static io.cucumber.core.options.Constants.FILTER_TAGS_PROPERTY_NAME;
+import static io.cucumber.core.options.Constants.PLUGIN_PROPERTY_NAME;
+
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.btg.practual.stepDefinitions")
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@test")
+@ConfigurationParameter(
+        key = PLUGIN_PROPERTY_NAME,
+        value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+)
+@ConfigurationParameter(key = "cucumber.publish.quiet", value = "true")
+public class CucumberRunner {
+}
+```
+
+## Annotations
+
+### @Suite
+
+<ParamField path="@Suite" type="annotation">
+  Marks this class as a JUnit Platform test suite. This annotation is required to enable the JUnit Platform Suite engine to discover and execute this runner.
+</ParamField>
+
+### @IncludeEngines
+
+<ParamField path="@IncludeEngines" type="annotation" required>
+  Specifies which test engines should be included when running the suite.
+  
+  **Value:** `"cucumber"`
+  
+  This ensures that only the Cucumber test engine is used to execute tests, enabling Cucumber's BDD-style test execution.
+</ParamField>
+
+### @SelectClasspathResource
+
+<ParamField path="@SelectClasspathResource" type="annotation" required>
+  Defines the classpath location where feature files are stored.
+  
+  **Value:** `"features"`
+  
+  The runner will scan the `src/test/resources/features/` directory for `.feature` files to execute.
+</ParamField>
+
+## Configuration Parameters
+
+The runner uses multiple `@ConfigurationParameter` annotations to configure Cucumber's behavior:
+
+### Glue Path Configuration
+
+<ParamField path="GLUE_PROPERTY_NAME" type="ConfigurationParameter" required>
+  Specifies the package where step definition classes are located.
+  
+  **Key:** `cucumber.glue`  
+  **Value:** `"org.btg.practual.stepDefinitions"`
+  
+  Cucumber will scan this package to find methods annotated with `@Dado`, `@Cuando`, and `@Entonces` (Spanish Gherkin keywords) that implement test steps.
+</ParamField>
+
+### Tag Filtering
+
+<ParamField path="FILTER_TAGS_PROPERTY_NAME" type="ConfigurationParameter" required>
+  Filters which scenarios to execute based on Cucumber tags.
+  
+  **Key:** `cucumber.filter.tags`  
+  **Value:** `"@test"`
+  
+  Only scenarios annotated with `@test` in feature files will be executed. This allows selective test execution and helps organize test suites by environment or priority.
+</ParamField>
+
+### Plugin Configuration
+
+<ParamField path="PLUGIN_PROPERTY_NAME" type="ConfigurationParameter" required>
+  Configures reporting and output plugins for test execution.
+  
+  **Key:** `cucumber.plugin`  
+  **Value:** `"io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"`
+  
+  This configuration enables three plugins:
+  
+  - **SerenityReporterParallel**: Generates Serenity BDD reports with parallel execution support
+  - **pretty**: Provides colored console output with readable test results
+  - **html:target/cucumber-report.html**: Generates an HTML report in the target directory
+</ParamField>
+
+### Publish Settings
+
+<ParamField path="cucumber.publish.quiet" type="ConfigurationParameter">
+  Suppresses the Cucumber publish banner in console output.
+  
+  **Key:** `cucumber.publish.quiet`  
+  **Value:** `"true"`
+  
+  When set to true, Cucumber won't display messages about publishing reports to Cucumber Reports service.
+</ParamField>
+
+## How It Works
+
+<Accordion title="Test Discovery Process">
+  When the CucumberRunner is executed:
+  
+  1. **JUnit Platform** detects the `@Suite` annotation and initializes the suite engine
+  2. **Cucumber Engine** is activated via `@IncludeEngines("cucumber")`
+  3. **Feature Files** are discovered in the `features` classpath resource
+  4. **Tag Filtering** is applied - only scenarios with `@test` tag are selected
+  5. **Step Definitions** are loaded from `org.btg.practual.stepDefinitions` package
+  6. **Test Execution** begins, matching feature file steps to step definition methods
+  7. **Reports** are generated using the configured plugins
+</Accordion>
+
+<Accordion title="Parallel Execution Support">
+  The runner is configured with `SerenityReporterParallel`, which enables thread-safe reporting during parallel test execution. This allows multiple scenarios to run concurrently while maintaining accurate test reports.
+  
+  To enable parallel execution, configure JUnit Platform properties in `junit-platform.properties`:
+  
+  ```properties
+  cucumber.execution.parallel.enabled=true
+  cucumber.execution.parallel.config.strategy=dynamic
+  ```
+</Accordion>
+
+## Usage
+
+### Running Tests
+
+Execute the test suite using Maven:
+
+```bash
+mvn clean test
+```
+
+### Running with Custom Tags
+
+To override the `@test` tag filter and run specific scenarios:
+
+```bash
+mvn test -Dcucumber.filter.tags="@smoke"
+```
+
+### Generating Reports
+
+After test execution, reports are generated in:
+
+- **HTML Report:** `target/cucumber-report.html`
+- **Serenity Reports:** `target/site/serenity/` (generated with `mvn serenity:aggregate`)
+
+<Note>
+  The CucumberRunner class itself is empty because all configuration is handled through annotations. The JUnit Platform reads these annotations at runtime to configure and execute tests.
+</Note>
+
+## Related Classes
+
+- [Step Definitions](/api/step-definitions) - Implementation of test steps
+- [Test Scenarios](/api/test-scenarios) - Feature file structure and syntax
+
+## Package Location
+
+```
+org.btg.practual.runners.CucumberRunner
+```
+
+**Source File:** `src/test/java/org/btg/practual/runners/CucumberRunner.java`

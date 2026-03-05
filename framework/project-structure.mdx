@@ -1,0 +1,410 @@
+---
+title: Project Structure
+description: Understanding the directory structure and file organization of the test framework
+icon: folder-tree
+---
+
+## Overview
+
+The Makers BTG Tests framework follows a standard Maven/Gradle project structure with clear separation between production code, test code, and resources.
+
+<Info>
+This structure follows Java and Gradle conventions, making it familiar to developers and compatible with most IDEs.
+</Info>
+
+## Directory Layout
+
+```
+makers-btg-tests/
+├── gradle/                      # Gradle wrapper files
+│   └── wrapper/
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── src/
+│   ├── main/                    # Production code
+│   │   └── java/
+│   │       └── org/btg/practual/
+│   │           └── Main.java
+│   └── test/                    # Test code and resources
+│       ├── java/
+│       │   └── org/btg/practual/
+│       │       ├── runners/
+│       │       │   └── CucumberRunner.java
+│       │       └── stepDefinitions/
+│       │           └── GeneracionReporteSteps.java
+│       └── resources/
+│           ├── features/
+│           │   └── GeneracionReporte.feature
+│           └── serenity.conf
+├── target/                      # Build output (generated)
+│   ├── site/serenity/          # Serenity HTML reports
+│   ├── cucumber-report.html    # Cucumber HTML report
+│   └── test-classes/           # Compiled test classes
+├── build.gradle                 # Gradle build configuration
+├── gradlew                      # Gradle wrapper script (Unix)
+├── gradlew.bat                  # Gradle wrapper script (Windows)
+└── settings.gradle              # Gradle settings
+```
+
+## Source Directories
+
+### src/main/java/
+
+Contains production code (currently minimal):
+
+```
+src/main/java/org/btg/practual/
+└── Main.java
+```
+
+<Note>
+The main source directory is reserved for utility classes, helpers, or shared code that's not test-specific. Most automation code lives in `src/test/java/`.
+</Note>
+
+### src/test/java/
+
+Contains all test automation code:
+
+```
+src/test/java/org/btg/practual/
+├── runners/
+│   └── CucumberRunner.java          # Test execution entry point
+└── stepDefinitions/
+    └── GeneracionReporteSteps.java  # Gherkin step implementations
+```
+
+## Key Directories Explained
+
+### runners/
+
+**Purpose**: Contains test runner classes that configure and execute tests
+
+**Location**: `src/test/java/org/btg/practual/runners/`
+
+**Example**:
+```java
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.btg.practual.stepDefinitions")
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@test")
+public class CucumberRunner {}
+```
+
+<Tip>
+**When to add new runners**: Create separate runners for different test suites (smoke tests, regression tests, API tests) or when you need different execution configurations.
+</Tip>
+
+### stepDefinitions/
+
+**Purpose**: Contains Cucumber step definition classes that link Gherkin steps to Java code
+
+**Location**: `src/test/java/org/btg/practual/stepDefinitions/`
+
+**Current file**: `GeneracionReporteSteps.java`
+
+```java
+public class GeneracionReporteSteps {
+    
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        System.out.println("Step: el usuario ingresa a la web de Chronos");
+    }
+    
+    // Additional step definitions...
+}
+```
+
+<Accordion title="Step Definition Best Practices">
+- **One class per feature**: Create `LoginSteps.java`, `ReportGenerationSteps.java`, etc.
+- **Descriptive names**: Use names that clearly indicate which feature they support
+- **Shared steps**: Common steps (login, navigation) can be in a `CommonSteps.java` file
+- **Spanish annotations**: This project uses Spanish Gherkin keywords (`@Dado`, `@Cuando`, `@Entonces`)
+</Accordion>
+
+### features/
+
+**Purpose**: Contains Cucumber feature files written in Gherkin syntax
+
+**Location**: `src/test/resources/features/`
+
+**Current file**: `GeneracionReporte.feature`
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+```
+
+<CardGroup cols={2}>
+  <Card title="Feature Organization" icon="folder">
+    Group related scenarios in the same feature file
+    
+    Examples:
+    - `Login.feature`
+    - `ReportGeneration.feature`
+    - `UserManagement.feature`
+  </Card>
+  <Card title="Subdirectories" icon="folder-tree">
+    Create subdirectories for large projects:
+    
+    - `features/authentication/`
+    - `features/reports/`
+    - `features/admin/`
+  </Card>
+</CardGroup>
+
+## Configuration Files
+
+### build.gradle
+
+**Purpose**: Defines project dependencies, plugins, and build tasks
+
+**Location**: Project root
+
+**Key sections**:
+```gradle
+plugins {
+    id 'java'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+}
+
+dependencies {
+    implementation "net.serenity-bdd:serenity-core:4.0.46"
+    implementation "net.serenity-bdd:serenity-cucumber:4.0.46"
+    implementation "net.serenity-bdd:serenity-screenplay:4.0.46"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:4.0.46"
+}
+
+serenity {
+    testRoot = "org.btg.practual"
+    requirementsBaseDir = "src/test/resources/features"
+    reports = ["html"]
+}
+```
+
+<Info>
+Modify `build.gradle` when:
+- Adding new dependencies (e.g., REST Assured for API testing)
+- Updating Serenity or other library versions
+- Configuring new Gradle tasks
+- Changing report generation settings
+</Info>
+
+### serenity.conf
+
+**Purpose**: Runtime configuration for Serenity BDD and WebDriver
+
+**Location**: `src/test/resources/serenity.conf`
+
+**Key sections**:
+```hocon
+webdriver {
+  driver = chrome
+  autodownload = true
+  capabilities {
+    browserName = "chrome"
+    "goog:chromeOptions" {
+      args = ["start-maximized", "incognito"]
+    }
+  }
+}
+
+serenity {
+    take.screenshots = FOR_FAILURES
+    test.root = "org.btg.practual"
+    logging = QUIET
+}
+
+environments {
+  qa {
+    webdriver.base.url = "https://qa.btgpactual.com"
+  }
+  stg {
+    webdriver.base.url = "https://stg.btgpactual.com"
+  }
+}
+```
+
+<Tip>
+Use `serenity.conf` for environment-specific settings like URLs, timeouts, and browser configurations. Avoid hardcoding these values in test code.
+</Tip>
+
+## Build Output (target/)
+
+Generated during test execution (not committed to version control):
+
+```
+target/
+├── site/serenity/               # Serenity HTML reports
+│   ├── index.html              # Main report entry point
+│   ├── requirements.html       # Requirements coverage
+│   ├── capabilities.html       # Test capabilities
+│   └── css/                    # Report styling
+├── cucumber-report.html         # Cucumber HTML report
+├── test-classes/                # Compiled test classes
+└── surefire-reports/            # JUnit XML reports
+```
+
+<Note>
+Always add `target/` to `.gitignore` to avoid committing build artifacts to version control.
+</Note>
+
+## Adding New Files
+
+### Adding a New Feature File
+
+1. Create the file in `src/test/resources/features/`
+2. Use the `.feature` extension
+3. Start with `#language:es` for Spanish Gherkin
+4. Add feature description and scenarios with appropriate tags
+
+**Example**:
+```bash
+# Create new feature
+touch src/test/resources/features/Login.feature
+```
+
+### Adding New Step Definitions
+
+1. Create a new class in `src/test/java/org/btg/practual/stepDefinitions/`
+2. Use a descriptive name ending with `Steps.java`
+3. Import Cucumber annotations: `io.cucumber.java.es.*`
+4. Implement step methods with `@Dado`, `@Cuando`, `@Entonces` annotations
+
+**Example**:
+```bash
+# Create new step definitions
+touch src/test/java/org/btg/practual/stepDefinitions/LoginSteps.java
+```
+
+### Adding Screenplay Components
+
+As you implement the Screenplay pattern, organize code in these directories:
+
+```
+src/test/java/org/btg/practual/
+├── tasks/              # High-level business actions
+│   ├── Login.java
+│   ├── NavigateToChronos.java
+│   └── GenerateReport.java
+├── interactions/       # Custom low-level interactions
+│   └── WaitForPageLoad.java
+├── questions/          # Assertions and queries
+│   ├── ReportGenerationStatus.java
+│   └── TheReportName.java
+├── pages/              # Page object targets
+│   ├── ChronosHomePage.java
+│   └── LoginPage.java
+└── abilities/          # Custom actor abilities (if needed)
+    └── ManageReports.java
+```
+
+<Tip>
+Create these directories as you need them. Start with `tasks/` and `questions/` first.
+</Tip>
+
+## Package Structure
+
+All code follows the base package: `org.btg.practual`
+
+**Recommended subpackages**:
+
+| Package | Purpose | Example Classes |
+|---------|---------|----------------|
+| `runners` | Test runners | `CucumberRunner`, `SmokeTestRunner` |
+| `stepDefinitions` | Cucumber glue code | `LoginSteps`, `ReportSteps` |
+| `tasks` | Screenplay tasks | `Login`, `GenerateReport` |
+| `questions` | Screenplay questions | `ReportStatus`, `LoginResult` |
+| `pages` | Page object targets | `ChronosHomePage`, `LoginPage` |
+| `models` | Data models | `ReportData`, `UserCredentials` |
+| `utils` | Utilities and helpers | `DateHelper`, `DataGenerator` |
+
+## Configuration Properties
+
+### Gradle Wrapper
+
+**Location**: `gradle/wrapper/gradle-wrapper.properties`
+
+**Purpose**: Defines Gradle version for consistent builds
+
+```properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+```
+
+<Note>
+Always use the Gradle wrapper (`./gradlew`) instead of a locally installed Gradle to ensure consistent builds across environments.
+</Note>
+
+### Settings
+
+**Location**: `settings.gradle`
+
+**Purpose**: Defines root project name
+
+```gradle
+rootProject.name = 'makers-btg-tests'
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Follow Package Conventions" icon="folder">
+    Keep all code under `org.btg.practual` for consistency
+  </Card>
+  <Card title="Organize by Feature" icon="sitemap">
+    Group related feature files, step definitions, and page objects together
+  </Card>
+  <Card title="Use Descriptive Names" icon="tag">
+    File and class names should clearly indicate their purpose
+  </Card>
+  <Card title="Keep Tests in src/test/" icon="vial">
+    All test code belongs in `src/test/`, not `src/main/`
+  </Card>
+  <Card title="Version Control" icon="code-branch">
+    Commit source files, ignore `target/` and build outputs
+  </Card>
+  <Card title="IDE Compatibility" icon="laptop-code">
+    Structure works with IntelliJ, Eclipse, and VS Code
+  </Card>
+</CardGroup>
+
+## IDE Setup
+
+### IntelliJ IDEA
+
+1. Open project: `File > Open > Select build.gradle`
+2. IntelliJ auto-detects Gradle and imports dependencies
+3. Mark `src/test/java` as Test Sources (usually automatic)
+4. Mark `src/test/resources` as Test Resources
+5. Install Cucumber for Java plugin for feature file support
+
+### VS Code
+
+1. Install extensions:
+   - Extension Pack for Java
+   - Cucumber (Gherkin) Full Support
+   - Gradle for Java
+2. Open project folder
+3. VS Code detects Gradle and configures the project
+
+<Info>
+For more architectural details, see [Framework Architecture](./architecture). To understand Serenity configuration, visit [Serenity BDD Integration](./serenity-bdd).
+</Info>
+
+## Quick Reference
+
+| Task | Command |
+|------|----------|
+| Run all tests | `./gradlew test` |
+| Run with tag filter | `./gradlew test -Dcucumber.filter.tags="@smoke"` |
+| Run specific environment | `./gradlew test -Denvironment=qa` |
+| Generate reports only | `./gradlew aggregate` |
+| Clean build directory | `./gradlew clean` |
+| View dependencies | `./gradlew dependencies` |
+| Build without tests | `./gradlew build -x test` |

@@ -1,0 +1,359 @@
+---
+title: Test Execution
+description: How tests are discovered, executed, and managed in the framework
+---
+
+This framework uses JUnit Platform Suite with Cucumber as the test engine, orchestrated through a custom runner class.
+
+## Test Runner Architecture
+
+The `CucumberRunner` class serves as the entry point for test execution:
+
+```java
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.btg.practual.stepDefinitions")
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@test")
+public class CucumberRunner {
+}
+```
+
+### Key Annotations
+
+<Steps>
+  <Step title="@Suite">
+    Marks this class as a JUnit Platform test suite, enabling it to aggregate and run multiple tests.
+  </Step>
+
+  <Step title="@IncludeEngines">
+    Specifies the Cucumber engine for test execution:
+
+    ```java
+    @IncludeEngines("cucumber")
+    ```
+
+    This integrates Cucumber's Gherkin-based test execution with JUnit Platform, allowing feature files to be discovered and executed as JUnit tests.
+  </Step>
+
+  <Step title="@SelectClasspathResource">
+    Defines where feature files are located:
+
+    ```java
+    @SelectClasspathResource("features")
+    ```
+
+    Points to `src/test/resources/features/` directory. All `.feature` files in this location and subdirectories are automatically discovered.
+  </Step>
+
+  <Step title="@ConfigurationParameter">
+    Sets Cucumber-specific configuration:
+
+    **Glue Path** - Links scenarios to step definitions:
+    ```java
+    @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.btg.practual.stepDefinitions")
+    ```
+
+    **Tag Filter** - Controls which scenarios execute:
+    ```java
+    @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@test")
+    ```
+
+    **Plugin Configuration** - Integrates Serenity reporting:
+    ```java
+    @ConfigurationParameter(
+        key = PLUGIN_PROPERTY_NAME,
+        value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+    )
+    ```
+  </Step>
+</Steps>
+
+## Test Discovery
+
+When you run `./gradlew test`, the following discovery process occurs:
+
+<Steps>
+  <Step title="JUnit Platform Initialization">
+    Gradle's test task uses `useJUnitPlatform()` to activate the JUnit 5 test engine.
+  </Step>
+
+  <Step title="Suite Detection">
+    JUnit Platform finds the `CucumberRunner` class marked with `@Suite`.
+  </Step>
+
+  <Step title="Engine Activation">
+    The `@IncludeEngines("cucumber")` annotation loads the Cucumber test engine from the classpath:
+    ```groovy
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:7.14.0"
+    ```
+  </Step>
+
+  <Step title="Feature File Scanning">
+    Cucumber scans `src/test/resources/features/` for all `.feature` files based on `@SelectClasspathResource("features")`.
+  </Step>
+
+  <Step title="Tag Filtering">
+    Only scenarios tagged with `@test` are selected for execution. Override this with:
+    ```bash
+    ./gradlew test -Dcucumber.filter.tags="@smoke"
+    ```
+  </Step>
+
+  <Step title="Step Definition Matching">
+    Cucumber scans `org.btg.practual.stepDefinitions` package for matching step definitions for each scenario step.
+  </Step>
+</Steps>
+
+## Test Execution Flow
+
+Once tests are discovered, execution proceeds as follows:
+
+### Scenario Lifecycle
+
+1. **Before Hooks** - Execute `@Before` annotated methods
+2. **Step Execution** - Run each step in the scenario sequentially
+3. **After Hooks** - Execute `@After` annotated methods (even if steps fail)
+4. **Reporting** - Serenity captures results, screenshots, and metadata
+
+### Screenplay Pattern Integration
+
+Tests use the Screenplay pattern for actor-based test execution:
+
+```java
+@Given("{actor} is on the login page")
+public void actorIsOnLoginPage(Actor actor) {
+    actor.attemptsTo(
+        Open.browserOn().thePageNamed("pages.login")
+    );
+}
+```
+
+Each step:
+- Uses an Actor to perform actions
+- Executes Tasks, Interactions, or Questions
+- Captures detailed execution data for Serenity reports
+
+## Test Output
+
+During test execution, you'll see real-time console output:
+
+```
+> Task :test
+
+Scenario: User logs in successfully
+  Given Ana is on the login page
+  When she enters valid credentials
+  And she submits the login form
+  Then she should see the dashboard
+
+Scenario: User enters invalid password
+  Given Carlos is on the login page
+  When he enters an invalid password
+  Then he should see an error message
+
+BUILD SUCCESSFUL in 23s
+```
+
+The `testLogging` configuration in build.gradle controls output verbosity:
+
+```groovy
+testLogging {
+    events "passed", "skipped", "failed"
+    showStandardStreams = true
+}
+```
+
+## Parallel Execution
+
+### Serenity Reporter Parallel
+
+The runner uses `SerenityReporterParallel` plugin for thread-safe reporting:
+
+```java
+@ConfigurationParameter(
+    key = PLUGIN_PROPERTY_NAME,
+    value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+)
+```
+
+This enables parallel test execution without report corruption.
+
+### Enabling Parallel Execution
+
+To run scenarios in parallel, add JUnit configuration properties. Create `src/test/resources/junit-platform.properties`:
+
+```properties
+cucumber.execution.parallel.enabled=true
+cucumber.execution.parallel.config.strategy=fixed
+cucumber.execution.parallel.config.fixed.parallelism=4
+```
+
+<Note>
+Parallel execution requires careful state management. Ensure:
+- Each scenario is independent
+- Actors don't share mutable state
+- Browser instances are isolated per thread
+</Note>
+
+### Parallel Execution Trade-offs
+
+<Accordion title="Benefits">
+  - Faster test execution
+  - Better CI/CD pipeline performance
+  - Increased test throughput
+</Accordion>
+
+<Accordion title="Considerations">
+  - Higher resource consumption (CPU, memory)
+  - More complex debugging
+  - Potential for timing-related issues
+  - Requires thread-safe test design
+</Accordion>
+
+## Tag-Based Execution
+
+The `@test` tag in CucumberRunner filters scenarios:
+
+```gherkin
+@test @smoke
+Scenario: Critical user login
+  Given Ana is on the login page
+  When she enters valid credentials
+  Then she should see the dashboard
+```
+
+Only scenarios with `@test` tag run by default. Override via command line:
+
+```bash
+# Run smoke tests only
+./gradlew test -Dcucumber.filter.tags="@smoke"
+
+# Run all tests except work-in-progress
+./gradlew test -Dcucumber.filter.tags="not @wip"
+
+# Run regression or critical tests
+./gradlew test -Dcucumber.filter.tags="@regression or @critical"
+
+# Run smoke tests that aren't skipped
+./gradlew test -Dcucumber.filter.tags="@smoke and not @skip"
+```
+
+### Tag Expressions
+
+Cucumber supports boolean logic in tag filters:
+
+- `and` - Both tags must be present
+- `or` - Either tag must be present
+- `not` - Tag must not be present
+- Parentheses for grouping: `(@smoke or @regression) and not @wip`
+
+## System Properties
+
+The test task forwards all system properties:
+
+```groovy
+systemProperties System.getProperties()
+```
+
+This allows runtime configuration:
+
+```bash
+./gradlew test -Denvironment=qa -Dwebdriver.driver=firefox
+```
+
+Pre-configured properties in build.gradle:
+
+```groovy
+systemProperty "serenity.test.root", "org.btg.practual"
+systemProperty "serenity.project.name", "Makers BTG Tests"
+```
+
+## Continue on Failure
+
+The build is configured to continue even when tests fail:
+
+```groovy
+gradle.startParameter.continueOnFailure = true
+```
+
+Benefits:
+- All scenarios execute regardless of individual failures
+- Complete test coverage data is collected
+- Full reports show all results
+- CI pipelines get comprehensive feedback
+
+<Tip>
+This setting ensures you get a complete picture of test health, not just the first failure.
+</Tip>
+
+## Debugging Test Execution
+
+### View Detailed Logs
+
+Run tests with verbose output:
+
+```bash
+./gradlew test --info
+```
+
+For even more detail:
+
+```bash
+./gradlew test --debug
+```
+
+### Check Test Discovery
+
+Verify which tests are discovered:
+
+```bash
+./gradlew test --dry-run
+```
+
+### Inspect System Properties
+
+Log all system properties during test execution by adding to a step definition:
+
+```java
+System.getProperties().forEach((key, value) -> 
+    System.out.println(key + " = " + value)
+);
+```
+
+## Test Execution Best Practices
+
+<Accordion title="Tag Organization">
+  Use a consistent tagging strategy:
+  - `@test` - Scenarios ready for execution
+  - `@smoke` - Critical path tests
+  - `@regression` - Full regression suite
+  - `@wip` - Work in progress, exclude from CI
+  - `@skip` - Temporarily disabled tests
+</Accordion>
+
+<Accordion title="Scenario Independence">
+  Each scenario should:
+  - Start from a clean state
+  - Not depend on other scenarios
+  - Clean up its own test data
+  - Be executable in any order
+</Accordion>
+
+<Accordion title="Meaningful Test Names">
+  Write descriptive scenario names:
+  ```gherkin
+  # Good
+  Scenario: User with expired password is prompted to reset
+  
+  # Avoid
+  Scenario: Test login
+  ```
+</Accordion>
+
+<Accordion title="Step Reusability">
+  Design steps to be reusable across scenarios:
+  - Use parameterized steps
+  - Avoid hard-coded data in step definitions
+  - Leverage data tables and scenario outlines
+</Accordion>

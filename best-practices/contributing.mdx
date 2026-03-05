@@ -1,0 +1,597 @@
+---
+title: "Contributing"
+description: "Guidelines for contributing to the Makers BTG Tests framework"
+---
+
+## Overview
+
+We welcome contributions to the Makers BTG Tests framework! This guide will help you set up your development environment, understand our development workflow, and submit high-quality contributions.
+
+<Note>
+Before contributing, familiarize yourself with the [code organization](/best-practices/code-organization) and [naming conventions](/best-practices/naming-conventions) guides.
+</Note>
+
+## Development Setup
+
+Follow these steps to set up your local development environment.
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- **Java 21** (required by the framework)
+- **Gradle** (included via wrapper)
+- **Git** for version control
+- **Chrome browser** (for WebDriver tests)
+- **IDE** (IntelliJ IDEA recommended)
+
+### Initial Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone <repository-url>
+    cd makers-btg-tests
+    ```
+  </Step>
+  
+  <Step title="Verify Java Version">
+    ```bash
+    java -version
+    ```
+    
+    Should output Java 21. If not, install Java 21:
+    ```bash
+    # Ubuntu/Debian
+    sudo apt install openjdk-21-jdk
+    
+    # macOS
+    brew install openjdk@21
+    ```
+  </Step>
+  
+  <Step title="Build the Project">
+    ```bash
+    ./gradlew clean build
+    ```
+    
+    This downloads dependencies and compiles the project.
+  </Step>
+  
+  <Step title="Run Tests to Verify Setup">
+    ```bash
+    ./gradlew test
+    ```
+    
+    All tests should pass. Reports are generated in `target/site/serenity/`.
+  </Step>
+  
+  <Step title="Open in IDE">
+    **IntelliJ IDEA:**
+    1. File → Open → Select project directory
+    2. IntelliJ will auto-detect Gradle and import the project
+    3. Wait for indexing to complete
+    
+    **Configure IDE:**
+    - Set Project SDK to Java 21
+    - Enable Cucumber plugin (if not already enabled)
+    - Install Gherkin syntax highlighting
+  </Step>
+</Steps>
+
+<Tip>
+Run `./gradlew test aggregate` to generate Serenity reports after test execution.
+</Tip>
+
+## Development Workflow
+
+Follow this workflow for all contributions:
+
+### 1. Create a Feature Branch
+
+Always work on a feature branch, never directly on `main` or `develop`:
+
+```bash
+# Create and switch to new branch
+git checkout -b feature/nombre-descriptivo
+
+# Examples
+git checkout -b feature/login-usuario
+git checkout -b fix/reporte-fecha-invalida
+git checkout -b docs/actualizar-readme
+```
+
+<Warning>
+Branch names should be descriptive and use kebab-case: `feature/nueva-funcionalidad`, not `feature/nueva_funcionalidad` or `mi-branch`.
+</Warning>
+
+### 2. Make Your Changes
+
+Follow the development guidelines for your type of contribution:
+
+- [Adding New Features](#adding-new-features)
+- [Writing Step Definitions](#writing-new-step-definitions)
+- [Adding Test Scenarios](#adding-test-scenarios)
+
+### 3. Test Your Changes
+
+Before committing, always:
+
+```bash
+# Run all tests
+./gradlew clean test
+
+# Run specific feature
+./gradlew test --tests '*CucumberRunner'
+
+# Verify reports generate
+./gradlew aggregate
+```
+
+### 4. Commit Your Changes
+
+Write clear, descriptive commit messages:
+
+```bash
+git add .
+git commit -m "feat: agregar validacion de fecha en generacion de reportes"
+```
+
+**Commit Message Format:**
+
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `test`: Adding or updating tests
+- `refactor`: Code refactoring
+- `chore`: Maintenance tasks
+
+**Examples:**
+```bash
+git commit -m "feat: agregar autenticacion de usuario"
+git commit -m "fix: corregir validacion de fecha invalida en reporte"
+git commit -m "test: agregar escenarios negativos para login"
+git commit -m "docs: actualizar guia de instalacion"
+```
+
+### 5. Push and Create Pull Request
+
+```bash
+# Push your branch
+git push origin feature/nombre-descriptivo
+
+# Create pull request via GitHub, GitLab, etc.
+```
+
+## Adding New Features
+
+When adding substantial new functionality:
+
+### 1. Plan the Feature
+
+- **Define requirements**: What business value does this provide?
+- **Design approach**: How will it integrate with existing code?
+- **Identify dependencies**: What new libraries or configurations are needed?
+
+### 2. Implement the Feature
+
+<Steps>
+  <Step title="Create Feature File">
+    Create a new feature file in `src/test/resources/features/`:
+    
+    ```gherkin
+    #language:es
+    Característica: Login de usuario en la aplicacion
+    
+      @test @login
+      Escenario: [Happy Path] Login exitoso con credenciales validas
+        Dado el usuario navega a la pagina de login
+        Cuando ingresa usuario "admin" y password "admin123"
+        Y hace click en el boton Ingresar
+        Entonces el usuario es redirigido al dashboard
+    ```
+    
+    File: `src/test/resources/features/LoginUsuario.feature`
+  </Step>
+  
+  <Step title="Create Step Definition Class">
+    Create corresponding step definition class:
+    
+    ```java
+    package org.btg.practual.stepDefinitions;
+    
+    import io.cucumber.java.es.*;
+    
+    public class LoginUsuarioSteps {
+        
+        @Dado("el usuario navega a la pagina de login")
+        public void el_usuario_navega_a_la_pagina_de_login() {
+            // Implementation
+        }
+        
+        @Cuando("ingresa usuario {string} y password {string}")
+        public void ingresa_usuario_y_password(String usuario, String password) {
+            // Implementation
+        }
+        
+        @Cuando("hace click en el boton Ingresar")
+        public void hace_click_en_el_boton_ingresar() {
+            // Implementation
+        }
+        
+        @Entonces("el usuario es redirigido al dashboard")
+        public void el_usuario_es_redirigido_al_dashboard() {
+            // Assertion
+        }
+    }
+    ```
+    
+    File: `src/test/java/org/btg/practual/stepDefinitions/LoginUsuarioSteps.java`
+  </Step>
+  
+  <Step title="Implement Page Objects (if needed)">
+    For UI interactions, create page object classes:
+    
+    ```java
+    package org.btg.practual.pages;
+    
+    import org.openqa.selenium.WebDriver;
+    import org.openqa.selenium.WebElement;
+    import org.openqa.selenium.support.FindBy;
+    import org.openqa.selenium.support.PageFactory;
+    
+    public class LoginPage {
+        
+        private WebDriver driver;
+        
+        @FindBy(id = "username")
+        private WebElement campoUsuario;
+        
+        @FindBy(id = "password")
+        private WebElement campoPassword;
+        
+        @FindBy(id = "loginButton")
+        private WebElement botonIngresar;
+        
+        public LoginPage(WebDriver driver) {
+            this.driver = driver;
+            PageFactory.initElements(driver, this);
+        }
+        
+        public void ingresarCredenciales(String usuario, String password) {
+            campoUsuario.sendKeys(usuario);
+            campoPassword.sendKeys(password);
+        }
+        
+        public void clickIngresar() {
+            botonIngresar.click();
+        }
+    }
+    ```
+  </Step>
+  
+  <Step title="Add Tests for Edge Cases">
+    Include negative and edge case scenarios:
+    
+    ```gherkin
+    @test @login
+    Escenario: [Negative] Login fallido con credenciales invalidas
+      Dado el usuario navega a la pagina de login
+      Cuando ingresa usuario "admin" y password "wrongpassword"
+      Y hace click en el boton Ingresar
+      Entonces se muestra mensaje de error "Credenciales invalidas"
+    ```
+  </Step>
+  
+  <Step title="Update Documentation">
+    Document the new feature:
+    - Update README if user-facing
+    - Add inline code comments for complex logic
+    - Update this documentation if needed
+  </Step>
+</Steps>
+
+## Writing New Step Definitions
+
+When adding step definitions to existing features:
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep Steps Atomic and Reusable" icon="atom">
+    Each step should do one thing and be reusable:
+    
+    ```java
+    // ✅ Good - Atomic and reusable
+    @Cuando("hace click en el boton {string}")
+    public void hace_click_en_el_boton(String nombreBoton) {
+        // Generic button click logic
+    }
+    
+    // ❌ Bad - Too specific, not reusable
+    @Cuando("hace click en el boton de generar reporte en la seccion de reportes")
+    public void hace_click_en_el_boton_de_generar_reporte_en_la_seccion_de_reportes() {
+        // Too specific
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Parameterization" icon="brackets-curly">
+    Leverage Cucumber expressions for flexible step definitions:
+    
+    ```java
+    // String parameters
+    @Dado("el usuario ingresa {string} en el campo {string}")
+    public void el_usuario_ingresa_en_el_campo(String valor, String campo) {
+        // Implementation
+    }
+    
+    // Integer parameters
+    @Cuando("selecciona {int} items de la lista")
+    public void selecciona_items_de_la_lista(Integer cantidad) {
+        // Implementation
+    }
+    
+    // Optional parameters
+    @Entonces("se muestra(n) {int} resultado(s)")
+    public void se_muestran_resultados(Integer cantidad) {
+        // Implementation
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Proper Waits" icon="clock">
+    Always wait for elements before interacting:
+    
+    ```java
+    import org.openqa.selenium.support.ui.WebDriverWait;
+    import org.openqa.selenium.support.ui.ExpectedConditions;
+    import java.time.Duration;
+    
+    public class CommonSteps {
+        
+        private WebDriver driver;
+        private WebDriverWait wait;
+        
+        public CommonSteps(WebDriver driver) {
+            this.driver = driver;
+            this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        }
+        
+        @Cuando("hace click en {string}")
+        public void hace_click_en(String elemento) {
+            WebElement el = wait.until(
+                ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[text()='" + elemento + "']")
+                )
+            );
+            el.click();
+        }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Add Meaningful Assertions" icon="check">
+    Use AssertJ for readable assertions:
+    
+    ```java
+    import static org.assertj.core.api.Assertions.*;
+    
+    @Entonces("el reporte {string} se genera exitosamente")
+    public void el_reporte_se_genera_exitosamente(String reporteId) {
+        String mensajeExito = obtenerMensajeExito();
+        
+        assertThat(mensajeExito)
+            .as("Mensaje de exito del reporte")
+            .contains("generado exitosamente")
+            .contains(reporteId);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Adding Test Scenarios
+
+When adding new test scenarios to existing features:
+
+### 1. Identify Scenario Type
+
+- **Happy Path**: Normal successful flow
+- **Negative**: Invalid inputs or error conditions
+- **Edge Cases**: Boundary conditions
+- **Integration**: Multi-system interactions
+
+### 2. Write Clear Gherkin
+
+```gherkin
+@test @reportes
+Esquema del escenario: [Happy Path] Generacion exitosa de multiples reportes
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+  Ejemplos:
+    | report | company      | report_date |
+    | 417    | compañia 1   | 2026-02-01  |
+    | 418    | compañia 2   | 2026-02-15  |
+    | 419    | compañia 1   | 2026-03-01  |
+```
+
+### 3. Use Appropriate Tags
+
+```gherkin
+@test @smoke @reportes
+Escenario: [Happy Path] Critical report generation
+
+@test @regression @reportes @edge-case
+Escenario: [Edge Case] Report generation at month boundary
+
+@wip @reportes
+Escenario: [Work in Progress] New feature under development
+```
+
+<Tip>
+Use `@wip` (work in progress) tag for scenarios under development. They won't run in CI/CD until tagged with `@test`.
+</Tip>
+
+## Code Review Process
+
+All contributions go through code review:
+
+### What Reviewers Look For
+
+<CardGroup cols={2}>
+  <Card title="Code Quality" icon="code">
+    - Follows naming conventions
+    - Proper error handling
+    - No code duplication
+    - Clear and concise logic
+  </Card>
+  
+  <Card title="Test Coverage" icon="shield-check">
+    - Happy path scenarios
+    - Negative scenarios
+    - Edge cases covered
+    - Assertions are meaningful
+  </Card>
+  
+  <Card title="Documentation" icon="book">
+    - Code comments for complex logic
+    - Updated README if needed
+    - Clear commit messages
+    - PR description explains changes
+  </Card>
+  
+  <Card title="Best Practices" icon="star">
+    - Follows framework patterns
+    - Reusable step definitions
+    - Proper waits implemented
+    - No hardcoded values
+  </Card>
+</CardGroup>
+
+### Responding to Review Comments
+
+1. **Address all feedback**: Respond to each review comment
+2. **Ask questions**: If feedback is unclear, ask for clarification
+3. **Make requested changes**: Update code based on feedback
+4. **Push updates**: Commit and push changes to the same branch
+5. **Request re-review**: Notify reviewers when ready
+
+## Testing Your Changes
+
+Before submitting a pull request:
+
+<Steps>
+  <Step title="Run Local Tests">
+    ```bash
+    ./gradlew clean test
+    ```
+    
+    All tests must pass locally.
+  </Step>
+  
+  <Step title="Run Specific Feature Tests">
+    ```bash
+    # Run tests with specific tag
+    ./gradlew test -Dcucumber.filter.tags="@reportes"
+    ```
+  </Step>
+  
+  <Step title="Generate and Review Reports">
+    ```bash
+    ./gradlew aggregate
+    
+    # Open report
+    open target/site/serenity/index.html
+    ```
+    
+    Verify:
+    - All scenarios passed
+    - Reports are properly formatted
+    - No unexpected failures
+  </Step>
+  
+  <Step title="Check Code Style">
+    Ensure code follows project conventions:
+    - Proper indentation (4 spaces)
+    - No trailing whitespace
+    - Imports are organized
+    - No unused imports
+  </Step>
+</Steps>
+
+## Pull Request Guidelines
+
+When creating a pull request:
+
+### PR Title Format
+
+```
+<type>: <brief description>
+```
+
+**Examples:**
+- `feat: agregar funcionalidad de login de usuario`
+- `fix: corregir validacion de fecha en generacion de reportes`
+- `test: agregar escenarios negativos para consulta de saldo`
+
+### PR Description Template
+
+```markdown
+## Descripción
+[Describe los cambios realizados]
+
+## Tipo de cambio
+- [ ] Nueva funcionalidad (feat)
+- [ ] Corrección de bug (fix)
+- [ ] Actualización de tests (test)
+- [ ] Documentación (docs)
+- [ ] Refactorización (refactor)
+
+## ¿Cómo se ha probado?
+[Describe las pruebas realizadas]
+
+## Checklist
+- [ ] Mi código sigue las convenciones del proyecto
+- [ ] He realizado pruebas locales
+- [ ] Todos los tests pasan exitosamente
+- [ ] He actualizado la documentación si es necesario
+- [ ] Los reportes Serenity se generan correctamente
+
+## Capturas de pantalla (si aplica)
+[Agregar capturas de pantalla de reportes o funcionalidad]
+```
+
+### Before Submitting
+
+- [ ] All tests pass locally
+- [ ] Code follows naming conventions
+- [ ] Commit messages are clear and descriptive
+- [ ] No merge conflicts with target branch
+- [ ] PR description is complete
+- [ ] Appropriate reviewers are assigned
+
+<Warning>
+Do not submit PRs with failing tests or unresolved merge conflicts.
+</Warning>
+
+## Getting Help
+
+If you need assistance:
+
+- **Framework issues**: Check the [Troubleshooting guide](/best-practices/troubleshooting)
+- **Questions**: Reach out to the team via your communication channel
+- **Bug reports**: Create an issue with detailed reproduction steps
+
+<Note>
+Welcome to the team! Your contributions help make this framework better for everyone.
+</Note>

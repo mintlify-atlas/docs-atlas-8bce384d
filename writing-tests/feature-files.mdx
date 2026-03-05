@@ -1,0 +1,221 @@
+---
+title: 'Feature Files'
+description: 'Learn how to write Cucumber feature files using Gherkin syntax in Spanish'
+---
+
+## What are Feature Files?
+
+Feature files are the heart of Cucumber-based test automation. They describe the behavior of your application in plain language using Gherkin syntax. In this framework, we use **Spanish Gherkin** (`#language:es`) to write our test scenarios.
+
+Feature files are stored in:
+```
+src/test/resources/features/
+```
+
+## Basic Structure
+
+Every feature file follows this structure:
+
+<Steps>
+  <Step title="Language Declaration">
+    Start with `#language:es` to indicate Spanish Gherkin syntax
+  </Step>
+  
+  <Step title="Feature Description">
+    Use `Característica:` to describe the feature being tested
+  </Step>
+  
+  <Step title="Scenarios">
+    Define test scenarios using `Escenario:` or `Esquema del escenario:`
+  </Step>
+  
+  <Step title="Steps">
+    Write test steps using `Dado`, `Cuando`, `Entonces`
+  </Step>
+</Steps>
+
+## Real Example: GeneracionReporte.feature
+
+Here's the actual feature file from our framework:
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+    Ejemplos:
+      | report | company    | report_date |
+      | 417    | compañia 1 | 2026-02-01  |
+```
+
+<Note>
+This feature file is located at: `src/test/resources/features/GeneracionReporte.feature`
+</Note>
+
+## Gherkin Keywords in Spanish
+
+### Característica (Feature)
+
+Defines what feature or functionality is being tested:
+
+```gherkin
+Característica: Generación de reportes desde la web de Chronos
+```
+
+### Escenario (Scenario)
+
+Describes a single test case with specific steps:
+
+```gherkin
+Escenario: Usuario genera un reporte
+  Dado el usuario está en la página de reportes
+  Cuando selecciona un reporte
+  Entonces el reporte se descarga
+```
+
+### Esquema del escenario (Scenario Outline)
+
+Defines a parameterized test template that runs multiple times with different data:
+
+```gherkin
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+```
+
+<Tip>
+Use `Esquema del escenario` when you need to test the same workflow with different data sets. This is perfect for data-driven testing.
+</Tip>
+
+### Step Keywords
+
+| Spanish | English | Purpose |
+|---------|---------|--------|
+| **Dado** | Given | Sets up the initial context or preconditions |
+| **Cuando** | When | Describes the action being performed |
+| **Entonces** | Then | Verifies the expected outcome |
+| **Y** | And | Continues the previous step type |
+| **Pero** | But | Adds a contrasting step |
+
+### Examples of Each Step Type
+
+**Dado (Given)** - Setup:
+```gherkin
+Dado el usuario ingresa a la web de Chronos
+Dado el usuario está autenticado
+Dado la base de datos está inicializada
+```
+
+**Cuando (When)** - Action:
+```gherkin
+Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+Cuando hace clic en el botón de guardar
+Cuando envía el formulario
+```
+
+**Entonces (Then)** - Verification:
+```gherkin
+Entonces se genera el reporte "417" de manera exitosa
+Entonces aparece un mensaje de confirmación
+Entonces el usuario es redirigido a la página principal
+```
+
+## Tags
+
+Tags allow you to organize and filter tests. They start with `@`:
+
+```gherkin
+@test
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+  ...
+```
+
+Common tag usage:
+- `@test` - Standard test cases
+- `@smoke` - Quick smoke tests
+- `@regression` - Regression test suite
+- `@wip` - Work in progress
+- `@skip` - Skip this scenario
+
+<Warning>
+Tags must be placed on the line immediately before the scenario. Multiple tags can be used:
+```gherkin
+@test @smoke @priority-high
+Escenario: Critical test case
+```
+</Warning>
+
+## Parameter Syntax
+
+Parameters in Gherkin are enclosed in quotes and angle brackets:
+
+### String Parameters
+Use quotes `"text"` for static values:
+```gherkin
+Cuando ingrese el nombre "Juan Pérez"
+```
+
+### Placeholder Parameters
+Use angle brackets `"<placeholder>"` in Scenario Outlines:
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+```
+
+## File Organization
+
+Organize your feature files logically:
+
+```
+src/test/resources/features/
+├── GeneracionReporte.feature
+├── Login.feature
+├── ReporteManagement.feature
+└── ...
+```
+
+<Accordion title="Best Practices for Feature Files">
+  - **One feature per file**: Keep each feature file focused on a single functionality
+  - **Descriptive names**: Use clear, descriptive names like `GeneracionReporte.feature`
+  - **Meaningful scenarios**: Write scenario names that describe the business value
+  - **Reusable steps**: Write steps that can be reused across different scenarios
+  - **Consistent formatting**: Maintain consistent indentation (2 spaces is standard)
+  - **Business language**: Write in terms your stakeholders understand
+  - **Avoid technical details**: Keep feature files focused on behavior, not implementation
+</Accordion>
+
+## Ejemplos (Examples) Table
+
+The Examples table provides test data for Scenario Outlines:
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+```
+
+Each row (except the header) represents one test execution. You can add multiple rows:
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+  | 418    | compañia 2 | 2026-02-15  |
+  | 419    | compañia 3 | 2026-03-01  |
+```
+
+<Note>
+Column names in the Examples table must exactly match the placeholder names used in the scenario steps.
+</Note>
+
+## Next Steps
+
+Now that you understand feature files, learn how to implement the step definitions that bring these scenarios to life:
+
+- [Step Definitions](/writing-tests/step-definitions) - Implement the Java code
+- [Data-Driven Tests](/writing-tests/data-driven-tests) - Master Scenario Outlines
+- [Test Examples](/writing-tests/test-examples) - See complete examples

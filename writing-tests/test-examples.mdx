@@ -1,0 +1,422 @@
+---
+title: 'Test Examples'
+description: 'Complete walkthrough of real test cases with feature files and step definitions'
+---
+
+## Complete Test Example: Report Generation
+
+This page provides a complete walkthrough of the **GeneracionReporte** test, showing how the feature file and step definitions work together to create an end-to-end automated test.
+
+## The Feature File
+
+Let's start with the complete feature file:
+
+**Location**: `src/test/resources/features/GeneracionReporte.feature`
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+    Ejemplos:
+      | report | company    | report_date |
+      | 417    | compañia 1 | 2026-02-01  |
+```
+
+### Breaking Down the Feature
+
+<Steps>
+  <Step title="Language Declaration">
+    `#language:es` tells Cucumber to use Spanish keywords (Dado, Cuando, Entonces)
+  </Step>
+  
+  <Step title="Feature Description">
+    `Característica: Generación de reportes desde la web de Chronos` describes what functionality is being tested
+  </Step>
+  
+  <Step title="Test Tag">
+    `@test` tags this scenario for test execution and organization
+  </Step>
+  
+  <Step title="Scenario Outline">
+    `Esquema del escenario` creates a parameterized test template that can run with multiple data sets
+  </Step>
+  
+  <Step title="Test Steps">
+    Three steps define the test flow: setup (Dado), action (Cuando), and verification (Entonces)
+  </Step>
+  
+  <Step title="Examples Table">
+    Provides the actual test data - this test runs once with report "417", company "compañia 1", and date "2026-02-01"
+  </Step>
+</Steps>
+
+## The Step Definitions
+
+Now let's see the Java implementation:
+
+**Location**: `src/test/java/org/btg/practual/stepDefinitions/GeneracionReporteSteps.java`
+
+```java
+package org.btg.practual.stepDefinitions;
+
+import io.cucumber.java.es.Dado;
+import io.cucumber.java.es.Cuando;
+import io.cucumber.java.es.Entonces;
+
+public class GeneracionReporteSteps {
+
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: el usuario ingresa a la web de Chronos");
+    }
+
+    @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+    public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania,
+            String fecha) {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: ingrese los datos del reporte " + reporte + " para la compañia " + compania
+                + " segun la fecha " + fecha);
+    }
+
+    @Entonces("se genera el reporte {string} de manera exitosa")
+    public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: se genera el reporte " + reporte + " de manera exitosa");
+    }
+}
+```
+
+### Breaking Down the Step Definitions
+
+<Steps>
+  <Step title="Package and Imports">
+    The class lives in `org.btg.practual.stepDefinitions` and imports Spanish Cucumber annotations
+  </Step>
+  
+  <Step title="Step Definition Class">
+    `GeneracionReporteSteps` contains all step implementations for the report generation feature
+  </Step>
+  
+  <Step title="Setup Step (@Dado)">
+    Implements the "Given" step that sets up the test environment - navigating to Chronos
+  </Step>
+  
+  <Step title="Action Step (@Cuando)">
+    Implements the "When" step that performs the action - entering report data with three parameters
+  </Step>
+  
+  <Step title="Verification Step (@Entonces)">
+    Implements the "Then" step that verifies the outcome - report was generated successfully
+  </Step>
+</Steps>
+
+## How It All Flows Together
+
+Here's exactly what happens when this test runs:
+
+### Step 1: Test Initialization
+
+<Accordion title="Cucumber reads the feature file">
+  1. Cucumber finds `GeneracionReporte.feature`
+  2. Parses the `#language:es` directive
+  3. Identifies the `@test` tag
+  4. Reads the scenario outline and examples table
+  5. Creates a test instance for each row in the Examples table (one test in this case)
+</Accordion>
+
+### Step 2: Parameter Substitution
+
+Cucumber replaces the placeholders with actual values:
+
+**Before** (template):
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+```
+
+**After** (with data from row 1):
+```gherkin
+Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+```
+
+### Step 3: Execution Flow
+
+<Steps>
+  <Step title="Step 1: Setup">
+    **Gherkin**: `Dado el usuario ingresa a la web de Chronos`
+    
+    **Java Method**: `el_usuario_ingresa_a_la_web_de_chronos()`
+    
+    **Action**: Prints "Step: el usuario ingresa a la web de Chronos"
+    
+    **Real Implementation Would**: Initialize WebDriver, navigate to Chronos URL, verify page loaded
+  </Step>
+  
+  <Step title="Step 2: Action">
+    **Gherkin**: `Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"`
+    
+    **Java Method**: `ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha("417", "compañia 1", "2026-02-01")`
+    
+    **Action**: Prints the step with all three parameters
+    
+    **Real Implementation Would**: Fill report field with "417", select "compañia 1" from dropdown, enter date "2026-02-01", submit form
+  </Step>
+  
+  <Step title="Step 3: Verification">
+    **Gherkin**: `Entonces se genera el reporte "417" de manera exitosa`
+    
+    **Java Method**: `se_genera_el_reporte_de_manera_exitosa("417")`
+    
+    **Action**: Prints "Step: se genera el reporte 417 de manera exitosa"
+    
+    **Real Implementation Would**: Wait for success message, verify report number is "417", check download link exists
+  </Step>
+</Steps>
+
+<Note>
+The current implementation uses `System.out.println()` as placeholder code. In a production test, these would contain actual Selenium WebDriver commands, API calls, or database queries.
+</Note>
+
+## Test Execution Output
+
+When you run this test, you would see output like:
+
+```
+Scenario Outline: [Happy Path] Generacion exitosa de reporte
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+  Entonces se genera el reporte "417" de manera exitosa
+
+Step: el usuario ingresa a la web de Chronos
+Step: ingrese los datos del reporte 417 para la compañia compañia 1 segun la fecha 2026-02-01
+Step: se genera el reporte 417 de manera exitosa
+
+1 Scenarios (1 passed)
+3 Steps (3 passed)
+```
+
+## Data Flow Visualization
+
+Here's how data flows from the feature file to the step definitions:
+
+```
+Examples Table:
+┌─────────┬────────────┬─────────────┐
+│ report  │ company    │ report_date │
+├─────────┼────────────┼─────────────┤
+│ 417     │ compañia 1 │ 2026-02-01  │
+└─────────┴────────────┴─────────────┘
+         │            │            │
+         ▼            ▼            ▼
+Gherkin Step:
+"ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>""
+         │            │            │
+         ▼            ▼            ▼
+Java Method:
+ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+    String reporte,   // "417"
+    String compania,  // "compañia 1"
+    String fecha      // "2026-02-01"
+)
+```
+
+## Expanding to a Real Test
+
+Here's how you would enhance this test with actual automation code:
+
+### Enhanced Step 1: Navigate to Chronos
+
+```java
+private WebDriver driver;
+private WebDriverWait wait;
+
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() {
+    driver = new ChromeDriver();
+    wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    
+    driver.get("https://chronos.btg.com");
+    driver.manage().window().maximize();
+    
+    wait.until(ExpectedConditions.titleContains("Chronos"));
+    logger.info("Successfully navigated to Chronos web application");
+}
+```
+
+### Enhanced Step 2: Enter Report Data
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+        String reporte, String compania, String fecha) {
+    
+    // Wait for and fill report number field
+    WebElement reportField = wait.until(
+        ExpectedConditions.presenceOfElementLocated(By.id("reportNumber"))
+    );
+    reportField.clear();
+    reportField.sendKeys(reporte);
+    
+    // Select company from dropdown
+    Select companyDropdown = new Select(driver.findElement(By.id("company")));
+    companyDropdown.selectByVisibleText(compania);
+    
+    // Enter report date
+    WebElement dateField = driver.findElement(By.id("reportDate"));
+    dateField.clear();
+    dateField.sendKeys(fecha);
+    
+    // Submit the form
+    driver.findElement(By.id("generateButton")).click();
+    
+    logger.info(String.format("Submitted report generation: %s, %s, %s", 
+                             reporte, compania, fecha));
+}
+```
+
+### Enhanced Step 3: Verify Success
+
+```java
+@Entonces("se genera el reporte {string} de manera exitosa")
+public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+    // Wait for success message
+    WebElement successMessage = wait.until(
+        ExpectedConditions.presenceOfElementLocated(By.className("success-message"))
+    );
+    
+    // Verify message contains report number
+    String messageText = successMessage.getText();
+    assertTrue(messageText.contains("Reporte " + reporte + " generado exitosamente"),
+              "Success message should contain report number");
+    
+    // Verify download link is present
+    WebElement downloadLink = driver.findElement(By.id("downloadReport"));
+    assertTrue(downloadLink.isDisplayed(), "Download link should be visible");
+    
+    // Verify report number in download link
+    String downloadUrl = downloadLink.getAttribute("href");
+    assertTrue(downloadUrl.contains(reporte), 
+              "Download URL should contain report number");
+    
+    logger.info("Report " + reporte + " generated successfully");
+}
+```
+
+<Tip>
+Notice how the enhanced version adds:
+- **WebDriver initialization** and page navigation
+- **Explicit waits** for elements to be present
+- **Locator strategies** (By.id, By.className)
+- **Assertions** to verify expected outcomes
+- **Logging** for debugging and reporting
+</Tip>
+
+## Tips for Writing Effective Tests
+
+<Accordion title="Keep Steps Independent">
+Each step should be able to run independently. Avoid hidden dependencies between steps.
+
+**Good**:
+```java
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() {
+    driver = new ChromeDriver(); // Initialize driver in this step
+    driver.get("https://chronos.btg.com");
+}
+```
+
+**Bad**:
+```java
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() {
+    driver.get("https://chronos.btg.com"); // Assumes driver already exists
+}
+```
+</Accordion>
+
+<Accordion title="Use Meaningful Assertions">
+Always include clear assertions with descriptive failure messages.
+
+**Good**:
+```java
+assertTrue(successMessage.isDisplayed(), 
+          "Success message should be displayed after report generation");
+assertEquals("417", reportNumber, 
+            "Report number should match the requested report");
+```
+
+**Bad**:
+```java
+assertTrue(successMessage.isDisplayed());
+assertEquals("417", reportNumber);
+```
+</Accordion>
+
+<Accordion title="Add Proper Wait Strategies">
+Use explicit waits instead of Thread.sleep() for better reliability.
+
+**Good**:
+```java
+WebElement element = wait.until(
+    ExpectedConditions.elementToBeClickable(By.id("button"))
+);
+```
+
+**Bad**:
+```java
+Thread.sleep(5000);
+WebElement element = driver.findElement(By.id("button"));
+```
+</Accordion>
+
+<Accordion title="Handle Cleanup Properly">
+Always clean up resources (close browser, close connections) even if tests fail.
+
+```java
+@After
+public void tearDown() {
+    if (driver != null) {
+        driver.quit();
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Use Page Object Pattern">
+Separate UI logic from test logic for better maintainability.
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+        String reporte, String compania, String fecha) {
+    // Use Page Object instead of direct WebDriver calls
+    reportGenerationPage.enterReportNumber(reporte);
+    reportGenerationPage.selectCompany(compania);
+    reportGenerationPage.enterDate(fecha);
+    reportGenerationPage.clickGenerate();
+}
+```
+</Accordion>
+
+## Running the Test
+
+To run this specific test:
+
+```bash
+# Run by tag
+mvn test -Dcucumber.filter.tags="@test"
+
+# Run specific feature file
+mvn test -Dcucumber.features="src/test/resources/features/GeneracionReporte.feature"
+```
+
+## Next Steps
+
+- [Feature Files](/writing-tests/feature-files) - Learn more about Gherkin syntax
+- [Step Definitions](/writing-tests/step-definitions) - Deep dive into Java implementations
+- [Data-Driven Tests](/writing-tests/data-driven-tests) - Add more test data rows

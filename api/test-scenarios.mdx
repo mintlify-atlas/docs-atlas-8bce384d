@@ -1,0 +1,401 @@
+---
+title: 'Test Scenarios'
+description: 'Feature file structure and Gherkin syntax reference for writing test scenarios'
+icon: 'file-lines'
+---
+
+## Overview
+
+Test scenarios in the Makers BTG Tests framework are written using Gherkin syntax in Spanish. Feature files define the behavior of the application using a structured, human-readable format that serves as both documentation and executable specifications.
+
+## Feature File Structure
+
+### GeneracionReporte.feature
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+    Ejemplos:
+      | report | company    | report_date |
+      | 417    | compañia 1 | 2026-02-01  |
+```
+
+**Location:** `src/test/resources/features/GeneracionReporte.feature`
+
+## Gherkin Elements
+
+### Language Directive
+
+<ParamField path="#language:es" type="directive" required>
+  Specifies that the feature file uses Spanish language keywords.
+  
+  **Syntax:** `#language:es`
+  
+  This directive must be the first line of the feature file. It tells Cucumber to interpret Gherkin keywords in Spanish (`Característica`, `Dado`, `Cuando`, `Entonces`, etc.) instead of English.
+</ParamField>
+
+<Note>
+  Without the `#language:es` directive, Cucumber would expect English keywords like `Feature`, `Given`, `When`, `Then`, causing parsing errors.
+</Note>
+
+---
+
+### Característica (Feature)
+
+<ParamField path="Característica" type="keyword" required>
+  Declares the high-level feature being tested.
+  
+  **Syntax:** `Característica: <feature description>`
+  
+  **English equivalent:** `Feature:`
+</ParamField>
+
+The `Característica` keyword defines the business capability or feature under test. It should be followed by a concise description that explains the feature's purpose from a business perspective.
+
+#### Example
+
+```gherkin
+Característica: Generación de reportes desde la web de Chronos
+```
+
+This declares that the feature focuses on report generation functionality in the Chronos web application.
+
+---
+
+### Tags
+
+<ParamField path="@test" type="tag" required>
+  Cucumber tag used to filter and organize test scenarios.
+  
+  **Syntax:** `@tagname`
+  
+  Tags are placed on the line immediately before a scenario or scenario outline.
+</ParamField>
+
+#### Purpose
+
+Tags enable selective test execution. The [CucumberRunner](/api/cucumber-runner) is configured with:
+
+```java
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@test")
+```
+
+Only scenarios tagged with `@test` will be executed.
+
+#### Usage Examples
+
+```gherkin
+@test
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+
+@smoke @regression
+Esquema del escenario: Validar error de datos invalidos
+
+@test @integration
+Esquema del escenario: Verificar integracion con sistema externo
+```
+
+<Accordion title="Common Tagging Strategies">
+  - **@test** - Standard test execution
+  - **@smoke** - Critical path tests for quick validation
+  - **@regression** - Full regression test suite
+  - **@integration** - Tests that require external systems
+  - **@wip** - Work in progress, excluded from regular runs
+  - **@ignore** - Temporarily disabled tests
+</Accordion>
+
+---
+
+### Esquema del escenario (Scenario Outline)
+
+<ParamField path="Esquema del escenario" type="keyword" required>
+  Defines a parameterized test scenario that runs multiple times with different data.
+  
+  **Syntax:** `Esquema del escenario: <scenario description>`
+  
+  **English equivalent:** `Scenario Outline:`
+</ParamField>
+
+A scenario outline allows you to run the same test scenario with multiple sets of data. Variables are defined using angle brackets `<variable_name>` and values are provided in the `Ejemplos` (Examples) table.
+
+#### Example
+
+```gherkin
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+```
+
+<Note>
+  The `[Happy Path]` prefix in the scenario name is a naming convention to indicate this tests the main success flow. You can use `[Unhappy Path]` for error scenarios or `[Edge Case]` for boundary conditions.
+</Note>
+
+---
+
+## Gherkin Step Keywords
+
+Scenarios are composed of steps using Given-When-Then syntax:
+
+### Dado (Given)
+
+<ParamField path="Dado" type="step keyword" required>
+  Defines the initial context or preconditions for the scenario.
+  
+  **Syntax:** `Dado <precondition statement>`
+  
+  **English equivalent:** `Given`
+</ParamField>
+
+#### Purpose
+
+Given steps set up the test environment and establish the initial state before any actions are performed.
+
+#### Example
+
+```gherkin
+Dado el usuario ingresa a la web de Chronos
+```
+
+This step establishes that the user has navigated to the Chronos application as a precondition.
+
+---
+
+### Cuando (When)
+
+<ParamField path="Cuando" type="step keyword" required>
+  Defines the action or event that triggers the behavior being tested.
+  
+  **Syntax:** `Cuando <action statement>`
+  
+  **English equivalent:** `When`
+</ParamField>
+
+#### Purpose
+
+When steps represent the user's actions or system events that cause a change in the application state.
+
+#### Example with Parameters
+
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+```
+
+This step performs the action of entering report data. The values in angle brackets are placeholders that will be replaced with actual values from the Examples table.
+
+---
+
+### Entonces (Then)
+
+<ParamField path="Entonces" type="step keyword" required>
+  Defines the expected outcome or assertion that verifies the behavior.
+  
+  **Syntax:** `Entonces <expected outcome>`
+  
+  **English equivalent:** `Then`
+</ParamField>
+
+#### Purpose
+
+Then steps verify that the system behaves as expected after the When action is performed.
+
+#### Example
+
+```gherkin
+Entonces se genera el reporte "<report>" de manera exitosa
+```
+
+This step asserts that the report was generated successfully.
+
+---
+
+## Parameters and Data Tables
+
+### String Parameters
+
+<ParamField path="{string}" type="parameter type">
+  String parameters are enclosed in double quotes in the feature file.
+  
+  In scenario outlines, use angle brackets for variables: `"<variable_name>"`
+</ParamField>
+
+#### Example
+
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+```
+
+The step definition receives these as String parameters:
+
+```java
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+    String reporte, 
+    String compania, 
+    String fecha
+)
+```
+
+---
+
+### Ejemplos (Examples) Table
+
+<ParamField path="Ejemplos" type="keyword" required>
+  Provides test data for scenario outlines in a table format.
+  
+  **Syntax:**
+  ```gherkin
+  Ejemplos:
+    | column1 | column2 | column3 |
+    | value1  | value2  | value3  |
+  ```
+  
+  **English equivalent:** `Examples:`
+</ParamField>
+
+#### Structure
+
+The Examples table consists of:
+1. **Header row** - Column names that match variable names in the scenario outline
+2. **Data rows** - Each row represents one test execution with specific values
+
+#### Example
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+```
+
+<ResponseField name="report" type="string">
+  The report ID to be generated. Replaces `<report>` placeholders in the scenario.
+</ResponseField>
+
+<ResponseField name="company" type="string">
+  The company name for the report. Replaces `<company>` placeholders in the scenario.
+</ResponseField>
+
+<ResponseField name="report_date" type="string">
+  The date for the report in YYYY-MM-DD format. Replaces `<report_date>` placeholders in the scenario.
+</ResponseField>
+
+#### Multiple Data Rows
+
+You can add multiple rows to run the same scenario with different data:
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+  | 418    | compañia 2 | 2026-02-15  |
+  | 419    | compañia 3 | 2026-03-01  |
+```
+
+This would execute the scenario three times with different values.
+
+---
+
+## Complete Scenario Execution
+
+<Accordion title="How Cucumber Processes This Feature File">
+  When the [CucumberRunner](/api/cucumber-runner) executes the feature file:
+  
+  1. **Parse language directive** - Cucumber switches to Spanish keyword interpretation
+  2. **Read feature description** - "Generación de reportes desde la web de Chronos"
+  3. **Check tags** - Only scenarios with `@test` tag are selected (configured in runner)
+  4. **Load scenario outline** - Read the scenario template with `<variable>` placeholders
+  5. **Process Examples table** - For each data row:
+     - Replace `<report>` with `417`
+     - Replace `<company>` with `compañia 1`
+     - Replace `<report_date>` with `2026-02-01`
+  6. **Execute steps** - Call corresponding [step definition methods](/api/step-definitions):
+     - `el_usuario_ingresa_a_la_web_de_chronos()`
+     - `ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha("417", "compañia 1", "2026-02-01")`
+     - `se_genera_el_reporte_de_manera_exitosa("417")`
+  7. **Report results** - Generate test reports showing pass/fail status
+</Accordion>
+
+## Writing New Scenarios
+
+### Creating a New Feature File
+
+1. Create a new `.feature` file in `src/test/resources/features/`
+2. Start with the language directive: `#language:es`
+3. Add a `Característica:` description
+4. Write scenarios using `Dado`, `Cuando`, `Entonces` keywords
+5. Add appropriate tags (e.g., `@test`)
+
+### Example: New Feature File
+
+```gherkin
+#language:es
+Característica: Validación de reportes generados
+
+  @test @validation
+  Esquema del escenario: Verificar contenido del reporte
+    Dado el reporte "<report_id>" fue generado previamente
+    Cuando el usuario abre el reporte
+    Entonces el reporte contiene la compañia "<company_name>"
+    Y el reporte contiene la fecha "<report_date>"
+    Ejemplos:
+      | report_id | company_name | report_date |
+      | 417       | compañia 1   | 2026-02-01  |
+      | 418       | compañia 2   | 2026-02-15  |
+```
+
+### Additional Spanish Keywords
+
+<ResponseField name="Y" type="keyword">
+  Equivalent to `And` in English. Used to add additional steps of the same type.
+</ResponseField>
+
+<ResponseField name="Pero" type="keyword">
+  Equivalent to `But` in English. Used for negative assertions or contrasting conditions.
+</ResponseField>
+
+<ResponseField name="Escenario" type="keyword">
+  Equivalent to `Scenario` in English. Used for single-execution scenarios without examples.
+</ResponseField>
+
+## Best Practices
+
+<Accordion title="Feature File Writing Guidelines">
+  1. **Use descriptive names** - Scenario names should clearly indicate what is being tested
+  2. **One feature per file** - Keep feature files focused on a single business capability
+  3. **Keep scenarios independent** - Each scenario should be executable in isolation
+  4. **Use meaningful tags** - Organize scenarios with tags for easy filtering
+  5. **Write declaratively** - Focus on what, not how ("the user logs in" vs. "the user clicks the login button")
+  6. **Limit step count** - Keep scenarios between 3-7 steps for readability
+  7. **Use examples judiciously** - Include boundary values and representative samples
+  8. **Maintain consistency** - Follow the same phrasing patterns across scenarios
+</Accordion>
+
+<Accordion title="Common Anti-Patterns to Avoid">
+  ❌ **Overly technical steps** - Avoid UI implementation details in feature files
+  
+  ❌ **Too many examples** - Don't use scenario outlines as data-driven tests with hundreds of rows
+  
+  ❌ **Missing tags** - Always tag scenarios appropriately for filtering
+  
+  ❌ **Duplicate scenarios** - Use scenario outlines instead of copying similar scenarios
+  
+  ❌ **Hard-coded values** - Use examples tables for data that might change
+</Accordion>
+
+## Related Documentation
+
+- [CucumberRunner](/api/cucumber-runner) - Configures which feature files to execute
+- [Step Definitions](/api/step-definitions) - Implements the Java code for each Gherkin step
+
+## Feature File Location
+
+```
+src/test/resources/features/GeneracionReporte.feature
+```
+
+All feature files must be placed in the `features` directory to be discovered by the [CucumberRunner](/api/cucumber-runner) via the `@SelectClasspathResource("features")` annotation.

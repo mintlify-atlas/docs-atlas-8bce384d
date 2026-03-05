@@ -1,0 +1,256 @@
+---
+title: "Code Organization"
+description: "Best practices for structuring your test automation framework"
+---
+
+## Package Structure
+
+The Makers BTG Tests framework follows a clear package structure based on `org.btg.practual` as the root package. This organization ensures maintainability and scalability as your test suite grows.
+
+```
+org.btg.practual/
+├── runners/          # Test runners and configuration
+├── stepDefinitions/  # Cucumber step implementations
+└── (future: pages/)  # Page objects for UI automation
+```
+
+<Note>
+All test code should reside under the `org.btg.practual` package to ensure proper Serenity reporting and test discovery.
+</Note>
+
+### Package Guidelines
+
+<AccordionGroup>
+  <Accordion title="runners" icon="play">
+    Contains test runner classes that configure Cucumber and Serenity execution.
+    
+    **Example:** `CucumberRunner.java`
+    
+    ```java
+    package org.btg.practual.runners;
+    
+    @Suite
+    @IncludeEngines("cucumber")
+    @SelectClasspathResource("features")
+    @ConfigurationParameter(key = GLUE_PROPERTY_NAME, 
+                          value = "org.btg.practual.stepDefinitions")
+    public class CucumberRunner {
+    }
+    ```
+    
+    Keep all runner configuration centralized in this package.
+  </Accordion>
+  
+  <Accordion title="stepDefinitions" icon="code">
+    Contains all Cucumber step definition classes that implement the Gherkin steps.
+    
+    **Example:** `GeneracionReporteSteps.java`
+    
+    ```java
+    package org.btg.practual.stepDefinitions;
+    
+    import io.cucumber.java.es.*;
+    
+    public class GeneracionReporteSteps {
+        @Dado("el usuario ingresa a la web de Chronos")
+        public void el_usuario_ingresa_a_la_web_de_chronos() {
+            // Implementation
+        }
+    }
+    ```
+    
+    Each step definition class should focus on a specific feature or domain.
+  </Accordion>
+  
+  <Accordion title="pages (Future)" icon="window">
+    Reserved for Page Object Model (POM) implementations when UI automation expands.
+    
+    This package will contain classes representing web pages and their interactions.
+  </Accordion>
+</AccordionGroup>
+
+## Feature File Organization
+
+Feature files are stored in `src/test/resources/features/` and should follow these organizational principles:
+
+### One Feature Per File
+
+Each `.feature` file should contain exactly one feature with related scenarios.
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+```
+
+<Tip>
+Feature file names should match the feature they describe: `GeneracionReporte.feature` describes "Generación de reportes" feature.
+</Tip>
+
+### Grouping Related Scenarios
+
+Within a feature file, group related scenarios using tags and clear naming:
+
+- **Happy path scenarios**: `[Happy Path]` prefix and `@test` tag
+- **Error scenarios**: `[Error]` or `[Negative]` prefix and `@error` tag
+- **Edge cases**: `[Edge Case]` prefix and appropriate tags
+
+```gherkin
+@test @smoke
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+
+@test @regression
+Esquema del escenario: [Error] Fallo al generar reporte con datos invalidos
+
+@test @edge-case
+Escenario: [Edge Case] Generacion de reporte en fecha festiva
+```
+
+## Step Definition Organization
+
+### Matching Step Definitions to Features
+
+Each feature file should have a corresponding step definition class:
+
+| Feature File | Step Definition Class |
+|--------------|----------------------|
+| `GeneracionReporte.feature` | `GeneracionReporteSteps.java` |
+| `LoginUsuario.feature` | `LoginUsuarioSteps.java` |
+| `ConsultaSaldo.feature` | `ConsultaSaldoSteps.java` |
+
+### Grouping Step Definitions
+
+For large features, you can split step definitions into logical groups:
+
+```java
+// For authentication-related steps
+public class LoginSteps { }
+
+// For navigation steps
+public class NavigationSteps { }
+
+// For common steps used across features
+public class CommonSteps { }
+```
+
+<Warning>
+Avoid creating a single "god class" with all step definitions. Split them logically by feature or domain.
+</Warning>
+
+### Step Method Organization
+
+Within a step definition class, organize methods in the order they appear in scenarios:
+
+1. **@Dado** (Given) - Preconditions
+2. **@Cuando** (When) - Actions
+3. **@Entonces** (Then) - Assertions
+
+```java
+public class GeneracionReporteSteps {
+    
+    // Given steps - Setup and preconditions
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        // Setup code
+    }
+    
+    // When steps - Actions and interactions
+    @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+    public void ingrese_los_datos_del_reporte(String reporte, String compania, String fecha) {
+        // Action code
+    }
+    
+    // Then steps - Assertions and validations
+    @Entonces("se genera el reporte {string} de manera exitosa")
+    public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+        // Assertion code
+    }
+}
+```
+
+## Test Runner Configuration
+
+Maintain a single, well-configured runner class:
+
+```java
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, 
+                      value = "org.btg.practual.stepDefinitions")
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, 
+                      value = "@test")
+@ConfigurationParameter(
+    key = PLUGIN_PROPERTY_NAME,
+    value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+)
+public class CucumberRunner {
+}
+```
+
+<Tip>
+For different test suites (smoke, regression), create separate runner classes: `SmokeTestRunner.java`, `RegressionTestRunner.java`
+</Tip>
+
+## Directory Structure Overview
+
+The complete project structure should look like this:
+
+```
+src/
+├── main/java/
+│   └── org/btg/practual/
+│       └── Main.java
+└── test/
+    ├── java/org/btg/practual/
+    │   ├── runners/
+    │   │   └── CucumberRunner.java
+    │   └── stepDefinitions/
+    │       └── GeneracionReporteSteps.java
+    └── resources/
+        └── features/
+            └── GeneracionReporte.feature
+```
+
+## Future Expansion: Page Objects
+
+As the framework grows to include more UI automation, implement the Page Object Model:
+
+```
+org.btg.practual/
+├── pages/              # Page object classes
+│   ├── LoginPage.java
+│   └── ReportPage.java
+├── runners/
+├── stepDefinitions/
+└── utils/             # Utility and helper classes
+```
+
+<Note>
+Page objects encapsulate UI interactions and make tests more maintainable. Each page class represents a single page or component in the application.
+</Note>
+
+## Best Practices Summary
+
+<CardGroup cols={2}>
+  <Card title="Keep It Organized" icon="folder-tree">
+    Follow the package structure consistently across all test code.
+  </Card>
+  
+  <Card title="One Feature, One File" icon="file">
+    Each feature file should focus on a single feature or user story.
+  </Card>
+  
+  <Card title="Match Names" icon="link">
+    Step definition classes should match their corresponding feature files.
+  </Card>
+  
+  <Card title="Separate Concerns" icon="layer-group">
+    Keep runners, step definitions, and page objects in separate packages.
+  </Card>
+</CardGroup>

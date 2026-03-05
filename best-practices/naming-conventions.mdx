@@ -1,0 +1,372 @@
+---
+title: "Naming Conventions"
+description: "Standardized naming patterns for tests, classes, and methods"
+---
+
+## Overview
+
+Consistent naming conventions improve code readability, maintainability, and make it easier for team members to understand and navigate the test automation framework. This guide establishes naming standards for all components of the Makers BTG Tests framework.
+
+<Note>
+All naming should prioritize clarity and business readability over technical brevity.
+</Note>
+
+## Feature File Naming
+
+Feature files should use **PascalCase** and clearly describe the feature being tested.
+
+### Format
+
+```
+<FeatureName>.feature
+```
+
+### Examples
+
+| ✅ Good | ❌ Bad |
+|---------|--------|
+| `GeneracionReporte.feature` | `reporte.feature` |
+| `LoginUsuario.feature` | `login_test.feature` |
+| `ConsultaSaldo.feature` | `consulta-saldo-cuenta.feature` |
+| `TransferenciaBancaria.feature` | `test_transferencia.feature` |
+
+<Tip>
+Feature file names should match the feature description in Spanish, using PascalCase without spaces or special characters.
+</Tip>
+
+### Feature File Components
+
+Within each feature file:
+
+```gherkin
+#language:es
+Característica: <Clear business description>
+
+  @<appropriate-tags>
+  Esquema del escenario: [<Scenario Type>] <Business-readable description>
+    Dado <precondition in business language>
+    Cuando <action in business language>
+    Entonces <expected outcome in business language>
+```
+
+**Feature description** should be clear and business-focused:
+- ✅ "Generación de reportes desde la web de Chronos"
+- ❌ "Test de reportes"
+- ❌ "Reporte functionality testing"
+
+## Step Definition Class Naming
+
+Step definition classes should match their corresponding feature file with a "Steps" suffix.
+
+### Format
+
+```
+<FeatureName>Steps.java
+```
+
+### Examples
+
+| Feature File | Step Definition Class |
+|--------------|----------------------|
+| `GeneracionReporte.feature` | `GeneracionReporteSteps.java` |
+| `LoginUsuario.feature` | `LoginUsuarioSteps.java` |
+| `ConsultaSaldo.feature` | `ConsultaSaldoSteps.java` |
+| `TransferenciaBancaria.feature` | `TransferenciaBancariaSteps.java` |
+
+```java
+package org.btg.practual.stepDefinitions;
+
+import io.cucumber.java.es.*;
+
+public class GeneracionReporteSteps {
+    // Step implementations
+}
+```
+
+<Warning>
+Never use generic names like `TestSteps.java` or `AllSteps.java`. Each step definition class should be feature-specific.
+</Warning>
+
+## Step Definition Method Naming
+
+Step definition methods should mirror their Gherkin step text, converted to snake_case following Java convention for readability.
+
+### Format
+
+```java
+@<Dado|Cuando|Entonces>("<gherkin step text>")
+public void <method_name_in_snake_case>(<parameters>) {
+    // Implementation
+}
+```
+
+### Examples
+
+```java
+public class GeneracionReporteSteps {
+    
+    // Gherkin: "el usuario ingresa a la web de Chronos"
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        // Implementation
+    }
+    
+    // Gherkin: "ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}"
+    @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+    public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+            String reporte, String compania, String fecha) {
+        // Implementation
+    }
+    
+    // Gherkin: "se genera el reporte {string} de manera exitosa"
+    @Entonces("se genera el reporte {string} de manera exitosa")
+    public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+        // Implementation
+    }
+}
+```
+
+<Tip>
+Cucumber automatically generates method name suggestions based on the Gherkin step text. Use these suggestions as a starting point.
+</Tip>
+
+## Variable Naming
+
+Follow Java naming conventions with emphasis on business clarity.
+
+### Local Variables
+
+Use **camelCase** with descriptive names:
+
+```java
+// ✅ Good
+String reporteId = "417";
+String nombreCompania = "compañia 1";
+LocalDate fechaReporte = LocalDate.parse("2026-02-01");
+WebDriver driver = new ChromeDriver();
+
+// ❌ Bad
+String r = "417";
+String comp = "compañia 1";
+String d = "2026-02-01";
+WebDriver wd = new ChromeDriver();
+```
+
+### Instance Variables
+
+Use **camelCase** for instance variables:
+
+```java
+public class GeneracionReporteSteps {
+    
+    private WebDriver driver;
+    private ReportePage paginaReporte;
+    private String reporteActual;
+    private Map<String, String> datosReporte;
+}
+```
+
+### Constants
+
+Use **UPPER_SNAKE_CASE** for constants:
+
+```java
+public class ReporteConstants {
+    public static final String URL_BASE = "https://chronos.btg.com";
+    public static final int TIMEOUT_SEGUNDOS = 30;
+    public static final String FORMATO_FECHA = "yyyy-MM-dd";
+}
+```
+
+## Tag Naming Conventions
+
+Tags should be lowercase with hyphens, using clear and consistent naming:
+
+### Standard Tags
+
+| Tag | Purpose | Example Usage |
+|-----|---------|---------------|
+| `@test` | Marks active test scenarios | All executable tests |
+| `@smoke` | Critical functionality tests | Smoke test suite |
+| `@regression` | Full regression suite | Comprehensive testing |
+| `@wip` | Work in progress | Tests under development |
+| `@ignore` | Temporarily disabled tests | Known issues |
+
+### Feature-Specific Tags
+
+```gherkin
+@reportes @generacion
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+
+@login @autenticacion
+Escenario: [Happy Path] Login exitoso con credenciales validas
+
+@consulta @saldo @api
+Escenario: [Happy Path] Consulta de saldo mediante API
+```
+
+<Warning>
+Avoid creating too many tags. Stick to standard tags and add feature-specific tags only when necessary for test filtering.
+</Warning>
+
+### Tag Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Hierarchical Tags" icon="layer-group">
+    Combine general and specific tags for flexible filtering:
+    
+    ```gherkin
+    @test @reportes @generacion @smoke
+    Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    ```
+    
+    This allows running:
+    - All tests: `@test`
+    - All report tests: `@reportes`
+    - Only generation tests: `@generacion`
+    - Smoke suite: `@smoke`
+  </Accordion>
+  
+  <Accordion title="Tag Placement" icon="location-dot">
+    Place tags at the appropriate level:
+    
+    ```gherkin
+    @reportes
+    Característica: Generación de reportes desde la web de Chronos
+    
+      @test @smoke
+      Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+      
+      @test @regression
+      Esquema del escenario: [Error] Fallo con datos invalidos
+    ```
+    
+    Feature-level tags apply to all scenarios. Scenario-level tags are specific.
+  </Accordion>
+</AccordionGroup>
+
+## Scenario Naming
+
+Scenario names should be business-readable and follow a consistent format.
+
+### Format
+
+```gherkin
+[<Scenario Type>] <Business-readable description>
+```
+
+### Scenario Types
+
+- **[Happy Path]** - Normal, successful flow
+- **[Error]** - Error handling scenarios
+- **[Negative]** - Invalid input scenarios
+- **[Edge Case]** - Boundary conditions
+- **[Integration]** - Multi-system interactions
+
+### Examples
+
+```gherkin
+# ✅ Good
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+Escenario: [Error] Fallo al generar reporte con fecha invalida
+Escenario: [Negative] Rechazo de reporte sin permisos
+Escenario: [Edge Case] Generacion de reporte en limite de mes
+
+# ❌ Bad
+Escenario: test reporte
+Escenario: prueba 1
+Escenario: validar_que_el_reporte_se_genera_correctamente
+```
+
+<Tip>
+Scenario names should be understandable by non-technical stakeholders. They serve as living documentation.
+</Tip>
+
+## Test Runner Naming
+
+Test runner classes should clearly indicate their purpose:
+
+### Format
+
+```
+<Purpose>Runner.java
+```
+
+### Examples
+
+```java
+// Main test runner
+public class CucumberRunner { }
+
+// Smoke test suite
+public class SmokeTestRunner { }
+
+// Regression test suite
+public class RegressionTestRunner { }
+
+// Feature-specific runner
+public class ReportesTestRunner { }
+```
+
+## Page Object Naming (Future)
+
+When implementing page objects, follow these conventions:
+
+### Format
+
+```
+<PageName>Page.java
+```
+
+### Examples
+
+```java
+public class LoginPage {
+    public void ingresarCredenciales(String usuario, String password) { }
+}
+
+public class ReportePage {
+    public void seleccionarReporte(String reporteId) { }
+}
+
+public class DashboardPage {
+    public void navegarAReportes() { }
+}
+```
+
+### Method Naming in Page Objects
+
+Use Spanish verbs for actions:
+
+```java
+public class ReportePage {
+    
+    // ✅ Good - Clear action verbs
+    public void ingresarDatosReporte(String reporte, String compania, String fecha) { }
+    public void clickGenerarReporte() { }
+    public boolean esReporteGenerado() { }
+    public String obtenerMensajeExito() { }
+    
+    // ❌ Bad - Unclear or inconsistent
+    public void datos(String r, String c, String f) { }
+    public void click() { }
+    public boolean check() { }
+}
+```
+
+## Naming Checklist
+
+Before committing code, verify:
+
+- [ ] Feature files use PascalCase and match the feature description
+- [ ] Step definition classes match feature files with "Steps" suffix
+- [ ] Step methods use snake_case and reflect Gherkin text
+- [ ] Variables use camelCase with descriptive names
+- [ ] Constants use UPPER_SNAKE_CASE
+- [ ] Tags are lowercase with hyphens and follow standard conventions
+- [ ] Scenario names include type prefix and business description
+- [ ] All names are understandable without code context
+
+<Note>
+Consistent naming is not just about style—it's about creating a maintainable, understandable test framework that serves as living documentation.
+</Note>

@@ -1,0 +1,239 @@
+---
+title: Gradle Commands
+description: Essential Gradle commands for running tests and generating reports
+---
+
+This framework uses Gradle as its build tool and test execution engine. All test operations are managed through Gradle tasks defined in `build.gradle`.
+
+## Core Commands
+
+<Steps>
+  <Step title="Run All Tests">
+    Execute all test scenarios in the project:
+
+    <CodeGroup>
+    ```bash Gradle Wrapper (Recommended)
+    ./gradlew test
+    ```
+
+    ```bash Gradle
+    gradle test
+    ```
+    </CodeGroup>
+
+    The test task is configured with:
+    - JUnit Platform test engine
+    - UTF-8 encoding for test output
+    - System property forwarding from command line
+    - Automatic test logging (passed, skipped, failed events)
+  </Step>
+
+  <Step title="Generate Reports">
+    Aggregate test results into Serenity HTML reports:
+
+    ```bash
+    ./gradlew aggregate
+    ```
+
+    This task:
+    - Processes test execution data from `target/site/serenity`
+    - Generates comprehensive HTML reports
+    - Creates living documentation from feature files
+    - Must run after test execution completes
+  </Step>
+
+  <Step title="Full Test Cycle">
+    Run tests and generate reports in one command:
+
+    ```bash
+    ./gradlew clean test aggregate
+    ```
+
+    This is the recommended workflow:
+    - `clean` removes previous build artifacts
+    - `test` executes all test scenarios
+    - `aggregate` generates fresh reports
+
+    <Note>
+    The `test` task is configured with `finalizedBy(aggregate)` in build.gradle, so running `./gradlew test` automatically triggers report generation.
+    </Note>
+  </Step>
+</Steps>
+
+## Passing System Properties
+
+The test task forwards all system properties from the command line. Use the `-D` flag to pass configuration:
+
+```bash
+./gradlew test -Denvironment=qa
+```
+
+```bash
+./gradlew test -Dwebdriver.driver=firefox
+```
+
+```bash
+./gradlew test -Dserenity.take.screenshots=AFTER_EACH_STEP
+```
+
+### Pre-configured Properties
+
+The build.gradle sets default system properties:
+
+```groovy
+systemProperty "serenity.test.root", "org.btg.practual"
+systemProperty "serenity.project.name", "Makers BTG Tests"
+```
+
+You can override these at runtime using `-D` flags.
+
+## Tag Filtering
+
+Filter which tests run using Cucumber tags through system properties:
+
+```bash
+./gradlew test -Dcucumber.filter.tags="@test"
+```
+
+```bash
+./gradlew test -Dcucumber.filter.tags="@smoke and not @wip"
+```
+
+```bash
+./gradlew test -Dcucumber.filter.tags="@regression or @critical"
+```
+
+<Tip>
+The CucumberRunner is pre-configured with `@test` as the default tag filter. Override this using the `-Dcucumber.filter.tags` system property.
+</Tip>
+
+## Clean Build
+
+Remove all generated files and start fresh:
+
+```bash
+./gradlew clean
+```
+
+This deletes:
+- `build/` directory
+- `target/` directory
+- Compiled test classes
+- Test execution data
+- Previous reports
+
+## Gradle Options
+
+### Continue on Failure
+
+The project is configured with `gradle.startParameter.continueOnFailure = true`, meaning test execution continues even when scenarios fail. This ensures:
+- All tests run to completion
+- Complete test coverage data is collected
+- Full reports are generated
+
+### Show Standard Streams
+
+Test output is visible in the console:
+
+```groovy
+testLogging {
+    events "passed", "skipped", "failed"
+    showStandardStreams = true
+}
+```
+
+This displays:
+- Real-time test progress
+- System.out and System.err messages
+- Test event summaries
+
+## Common Workflows
+
+<Accordion title="Development Testing">
+  Quick test execution during development:
+
+  ```bash
+  ./gradlew test -Dcucumber.filter.tags="@wip"
+  ```
+
+  Run only work-in-progress scenarios without generating full reports.
+</Accordion>
+
+<Accordion title="Smoke Testing">
+  Execute critical path tests:
+
+  ```bash
+  ./gradlew clean test -Dcucumber.filter.tags="@smoke"
+  ```
+
+  Verify core functionality before full regression.
+</Accordion>
+
+<Accordion title="Full Regression">
+  Complete test suite execution:
+
+  ```bash
+  ./gradlew clean test aggregate
+  ```
+
+  Run all tests and generate comprehensive reports.
+</Accordion>
+
+<Accordion title="Environment-Specific Tests">
+  Target specific environment:
+
+  ```bash
+  ./gradlew test -Denvironment=qa -Dcucumber.filter.tags="@integration"
+  ```
+
+  Run integration tests against QA environment.
+</Accordion>
+
+## Troubleshooting
+
+### Build Fails to Start
+
+Ensure the Gradle wrapper is executable:
+
+```bash
+chmod +x gradlew
+```
+
+### Java Version Issues
+
+The project requires Java 21. Verify your Java version:
+
+```bash
+java -version
+```
+
+The toolchain is configured in build.gradle:
+
+```groovy
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+```
+
+### Tests Not Running
+
+Verify the test task configuration:
+
+```bash
+./gradlew test --info
+```
+
+Check that:
+- Feature files exist in `src/test/resources/features/`
+- Step definitions exist in `org.btg.practual.stepDefinitions`
+- Tags match the filter in CucumberRunner or command line
+
+<Note>
+Use `--info` or `--debug` flags for detailed Gradle execution logs:
+```bash
+./gradlew test --info
+./gradlew test --debug
+```
+</Note>

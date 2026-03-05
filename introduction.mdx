@@ -1,0 +1,95 @@
+---
+title: Introduction
+description: Welcome to the Makers BTG Tests framework - a modern test automation solution for BTG Pactual applications
+---
+
+## What is Makers BTG Tests?
+
+Makers BTG Tests is a comprehensive test automation framework built specifically for BTG Pactual applications. It combines industry-leading testing tools and patterns to provide a robust, maintainable, and scalable solution for automated testing.
+
+The framework leverages the **Screenplay pattern** to create readable, reusable test code that models how real users interact with your applications. Whether you're testing web UIs, APIs, or complex business workflows, this framework provides the structure and tools you need.
+
+## Why Use This Framework?
+
+The Makers BTG Tests framework offers several key advantages:
+
+<CardGroup cols={2}>
+  <Card title="Screenplay Pattern" icon="theater-masks">
+    Write tests from the user's perspective with clear, maintainable code that focuses on tasks and goals rather than implementation details.
+  </Card>
+  
+  <Card title="BDD with Cucumber" icon="cucumber">
+    Define test scenarios in natural language using Gherkin syntax, enabling collaboration between technical and non-technical team members.
+  </Card>
+  
+  <Card title="Rich Reporting" icon="chart-line">
+    Get detailed, visual test reports with Serenity BDD that include screenshots, step-by-step execution details, and requirements coverage.
+  </Card>
+  
+  <Card title="Modern Stack" icon="layer-group">
+    Built on Java 21 with the latest versions of Serenity BDD, Cucumber, and JUnit 5 for optimal performance and features.
+  </Card>
+</CardGroup>
+
+## Key Benefits
+
+### Maintainability
+The Screenplay pattern separates test intentions from implementation, making tests easier to read and maintain. When UI elements change, you only update the implementation in one place.
+
+### Scalability
+The framework's modular architecture allows you to easily add new test scenarios, actors, and capabilities as your application grows.
+
+### Collaboration
+With Cucumber's Gherkin syntax, business stakeholders can read and validate test scenarios written in Spanish, ensuring tests align with business requirements.
+
+### Visibility
+Serenity BDD's living documentation provides instant insight into test coverage, feature status, and requirement fulfillment - all generated automatically from your tests.
+
+## Technology Stack
+
+The framework is built on a modern, industry-standard technology stack:
+
+| Technology | Version | Purpose |
+|------------|---------|----------|
+| **Java** | 21 | Core programming language with latest LTS features |
+| **Serenity BDD** | 4.0.46 | Test reporting and living documentation |
+| **Cucumber** | 7.14.0 | BDD framework for Gherkin-based scenarios |
+| **JUnit** | 5.10.1 | Test execution engine |
+| **Gradle** | 8.x | Build automation and dependency management |
+| **Screenplay Pattern** | - | Design pattern for user-centric test code |
+| **AssertJ** | 3.24.2 | Fluent assertion library |
+
+## Architecture Overview
+
+The framework follows a clean, layered architecture:
+
+```
+makers-btg-tests/
+├── src/test/resources/features/     # Gherkin feature files
+├── src/test/java/
+│   ├── runners/                     # Test runners
+│   ├── stepDefinitions/             # Cucumber step definitions
+│   ├── tasks/                       # Screenplay tasks
+│   ├── interactions/                # Low-level interactions
+│   └── questions/                   # Verifications and assertions
+└── target/site/serenity/            # Generated test reports
+```
+
+<Note>
+The framework is configured with the project name **"Makers BTG Tests"** and uses `org.btg.practual` as the base package for test organization.
+</Note>
+
+## What You'll Learn
+
+In the following sections, you'll discover how to:
+
+- Install and configure the framework on your machine
+- Run your first automated test
+- Write new test scenarios using Gherkin
+- Implement step definitions with the Screenplay pattern
+- Generate and analyze Serenity BDD reports
+- Configure test environments (QA, Staging, Production)
+
+<Card title="Ready to Get Started?" icon="rocket" href="/quickstart">
+  Follow our quickstart guide to run your first test in minutes
+</Card>

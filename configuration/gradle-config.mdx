@@ -1,0 +1,585 @@
+---
+title: 'Gradle Configuration'
+description: 'Build configuration, dependencies, and test task setup'
+icon: 'elephant'
+---
+
+## Overview
+
+The Makers BTG Tests project uses Gradle as its build tool. The `build.gradle` file defines project dependencies, Java version, test configuration, and Serenity BDD integration.
+
+## Project Configuration
+
+```gradle build.gradle
+plugins {
+    id 'java'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+}
+
+group = 'org.btg.practual'
+version = '1.0.0-SNAPSHOT'
+```
+
+### Plugins
+
+<ParamField path="java" type="plugin">
+  Provides Java compilation, testing, and packaging capabilities.
+</ParamField>
+
+<ParamField path="net.serenity-bdd.serenity-gradle-plugin" type="plugin">
+  **Version**: `4.0.46`
+  
+  Integrates Serenity BDD into the Gradle build lifecycle:
+  - Aggregates test results
+  - Generates HTML reports
+  - Manages Serenity dependencies
+  - Provides `aggregate` task for report generation
+</ParamField>
+
+### Project Identity
+
+<ParamField path="group" type="string">
+  **Value**: `org.btg.practual`
+  
+  Maven group ID for the project.
+</ParamField>
+
+<ParamField path="version" type="string">
+  **Value**: `1.0.0-SNAPSHOT`
+  
+  Current project version. `SNAPSHOT` indicates this is a development version.
+</ParamField>
+
+## Java Toolchain
+
+```gradle build.gradle
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+```
+
+<ParamField path="java.toolchain.languageVersion" type="JavaLanguageVersion">
+  **Value**: Java 21
+  
+  Configures the Java version for compilation and execution.
+  
+  **Benefits of toolchains**:
+  - Gradle automatically downloads Java 21 if not installed
+  - Ensures consistent Java version across all developers
+  - Prevents "works on my machine" issues
+  - CI/CD uses the exact same Java version
+</ParamField>
+
+<Info>
+  Java 21 is a Long-Term Support (LTS) release with modern language features including:
+  - Virtual Threads (Project Loom)
+  - Pattern Matching for switch
+  - Record Patterns
+  - Sequenced Collections
+</Info>
+
+## Dependency Versions
+
+```gradle build.gradle
+ext {
+    serenityVersion = '4.0.46'
+    junitVersion = '5.10.1'
+}
+```
+
+Centralized version management using Gradle's extra properties (`ext` block):
+
+<ParamField path="serenityVersion" type="string" default="4.0.46">
+  Serenity BDD framework version used across all Serenity dependencies.
+</ParamField>
+
+<ParamField path="junitVersion" type="string" default="5.10.1">
+  JUnit 5 (Jupiter) version for test execution.
+</ParamField>
+
+<Note>
+  Using `ext` properties ensures all related dependencies use the same version, preventing compatibility issues.
+</Note>
+
+## Dependencies
+
+```gradle build.gradle
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // 1. Serenity BDD Core & Cucumber
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+
+    // 2. Patrón Screenplay (Core y Webdriver para UI)
+    implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
+
+    // 3. Motor de Pruebas: JUnit 5 (Jupiter)
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    testImplementation "org.junit.platform:junit-platform-suite:1.10.1"
+
+    // 4. AssertJ para validaciones
+    testImplementation "org.assertj:assertj-core:3.24.2"
+
+    // 5. Logging
+    testImplementation "ch.qos.logback:logback-classic:1.4.14"
+
+    // 6. Cucumber JUnit Platform Engine
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:7.14.0"
+
+    // 7. JUnit 4 (Required by Serenity Reporter)
+    testImplementation "junit:junit:4.13.2"
+}
+```
+
+### Dependency Categories
+
+<AccordionGroup>
+  <Accordion title="1. Serenity BDD Core & Cucumber" icon="1">
+    <ParamField path="serenity-core" type="implementation">
+      **Version**: 4.0.46
+      
+      Core Serenity BDD framework providing:
+      - Test orchestration
+      - Report generation
+      - Screenshot capture
+      - WebDriver management
+    </ParamField>
+    
+    <ParamField path="serenity-cucumber" type="implementation">
+      **Version**: 4.0.46
+      
+      Integration between Serenity BDD and Cucumber for BDD-style testing:
+      - Gherkin feature file support
+      - Step definition integration
+      - BDD report generation
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="2. Screenplay Pattern" icon="2">
+    <ParamField path="serenity-screenplay" type="implementation">
+      **Version**: 4.0.46
+      
+      Core Screenplay pattern implementation:
+      - Actor-based test design
+      - Task and Question abstractions
+      - Interaction modeling
+      - High-level test readability
+    </ParamField>
+    
+    <ParamField path="serenity-screenplay-webdriver" type="implementation">
+      **Version**: 4.0.46
+      
+      Web UI interactions for Screenplay:
+      - Browser actions (Click, Enter, Open)
+      - Element queries (Text, Value, Visibility)
+      - Navigation and frame switching
+      - WebDriver integration
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="3. JUnit 5 Test Engine" icon="3">
+    <ParamField path="junit-jupiter-api" type="testImplementation">
+      **Version**: 5.10.1
+      
+      JUnit 5 API for writing tests:
+      - `@Test` annotations
+      - Lifecycle hooks (`@BeforeEach`, `@AfterEach`)
+      - Assertions
+    </ParamField>
+    
+    <ParamField path="junit-jupiter-engine" type="testRuntimeOnly">
+      **Version**: 5.10.1
+      
+      JUnit 5 test execution engine. Runtime-only dependency as tests don't directly import engine classes.
+    </ParamField>
+    
+    <ParamField path="junit-platform-suite" type="testImplementation">
+      **Version**: 1.10.1
+      
+      Enables test suite configuration with `@Suite` and `@IncludeEngines` annotations for running Cucumber tests.
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="4. AssertJ" icon="4">
+    <ParamField path="assertj-core" type="testImplementation">
+      **Version**: 3.24.2
+      
+      Fluent assertion library providing readable and powerful assertions:
+      ```java
+      assertThat(username).isEqualTo("expected");
+      assertThat(errors).isEmpty();
+      assertThat(response.status()).isEqualTo(200);
+      ```
+      
+      More expressive than standard JUnit assertions.
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="5. Logging" icon="5">
+    <ParamField path="logback-classic" type="testImplementation">
+      **Version**: 1.4.14
+      
+      Logging framework (SLF4J implementation) for test execution logging:
+      - Configurable log levels
+      - File and console output
+      - Pattern-based formatting
+      
+      Configuration file: `src/test/resources/logback-test.xml`
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="6. Cucumber JUnit Platform Engine" icon="6">
+    <ParamField path="cucumber-junit-platform-engine" type="testImplementation">
+      **Version**: 7.14.0
+      
+      Enables Cucumber to run as a JUnit Platform test engine. Required for `@IncludeEngines("cucumber")` annotation in test runners.
+      
+      Bridges Cucumber feature execution with JUnit Platform.
+    </ParamField>
+  </Accordion>
+  
+  <Accordion title="7. JUnit 4 (Compatibility)" icon="7">
+    <ParamField path="junit:junit" type="testImplementation">
+      **Version**: 4.13.2
+      
+      JUnit 4 dependency required by Serenity's reporting mechanism. Even though tests use JUnit 5, Serenity's internal reporter needs JUnit 4.
+      
+      <Info>
+        This is a compatibility requirement and doesn't affect your test code.
+      </Info>
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+## Build Configuration
+
+### Encoding
+
+```gradle build.gradle
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+```
+
+<ParamField path="options.encoding" type="string" default="UTF-8">
+  Ensures all Java source files are compiled using UTF-8 encoding.
+  
+  **Why important**: Prevents encoding issues with special characters in code, comments, or test data across different operating systems.
+</ParamField>
+
+## Test Task Configuration
+
+```gradle build.gradle
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+
+    systemProperties System.getProperties()
+    systemProperty "serenity.test.root", "org.btg.practual"
+    systemProperty "serenity.project.name", "Makers BTG Tests"
+}
+```
+
+### Test Platform
+
+<ParamField path="useJUnitPlatform()" type="method">
+  Configures Gradle to use JUnit Platform (JUnit 5) for test execution.
+  
+  Required for running JUnit 5 and Cucumber tests via JUnit Platform.
+</ParamField>
+
+### Test Logging
+
+<ParamField path="testLogging.events" type="array">
+  **Values**: `["passed", "skipped", "failed"]`
+  
+  Logs test events to the console:
+  - ✅ **passed**: Successful tests
+  - ⏭️ **skipped**: Skipped tests
+  - ❌ **failed**: Failed tests with stack traces
+</ParamField>
+
+<ParamField path="testLogging.showStandardStreams" type="boolean" default="true">
+  Displays `System.out` and `System.err` output in the console during test execution.
+  
+  Useful for debugging but can create verbose output.
+</ParamField>
+
+### System Properties
+
+<ParamField path="systemProperties System.getProperties()" type="method">
+  Passes all JVM system properties from the command line to test execution.
+  
+  Enables runtime configuration:
+  ```bash
+  ./gradlew test -Denvironment=qa -Dheadless=true
+  ```
+</ParamField>
+
+<ParamField path="systemProperty 'serenity.test.root'" type="string">
+  **Value**: `org.btg.practual`
+  
+  Root package for scanning test classes and step definitions.
+</ParamField>
+
+<ParamField path="systemProperty 'serenity.project.name'" type="string">
+  **Value**: `Makers BTG Tests`
+  
+  Project name displayed in Serenity HTML reports.
+</ParamField>
+
+## Gradle Start Parameters
+
+```gradle build.gradle
+gradle.startParameter.continueOnFailure = true
+```
+
+<ParamField path="gradle.startParameter.continueOnFailure" type="boolean" default="true">
+  Ensures Gradle continues executing all tests even if some fail, instead of stopping at the first failure.
+  
+  **Benefits**:
+  - Complete test coverage in one run
+  - Full test report generation
+  - Better CI/CD feedback
+  
+  Build still fails if any test fails, but all tests are executed first.
+</ParamField>
+
+<Note>
+  Essential for CI/CD pipelines to get complete test results rather than stopping at the first failure.
+</Note>
+
+## Serenity Plugin Configuration
+
+```gradle build.gradle
+serenity {
+    testRoot = "org.btg.practual"
+    requirementsBaseDir = "src/test/resources/features"
+    reports = ["html"]
+}
+```
+
+<ParamField path="serenity.testRoot" type="string">
+  **Value**: `org.btg.practual`
+  
+  Root package for test scanning (matches systemProperty).
+</ParamField>
+
+<ParamField path="serenity.requirementsBaseDir" type="string">
+  **Value**: `src/test/resources/features`
+  
+  Directory containing Cucumber feature files for requirements traceability in reports.
+</ParamField>
+
+<ParamField path="serenity.reports" type="array">
+  **Value**: `["html"]`
+  
+  Report formats to generate. HTML provides rich visual reports with screenshots and step details.
+</ParamField>
+
+## Report Generation
+
+```gradle build.gradle
+test.finalizedBy(aggregate)
+```
+
+<ParamField path="test.finalizedBy(aggregate)" type="task">
+  Automatically runs the `aggregate` task after tests complete.
+  
+  The `aggregate` task:
+  - Collects test results from all test executions
+  - Generates consolidated Serenity HTML reports
+  - Creates requirements traceability documentation
+  
+  Reports are generated in `target/site/serenity/`
+</ParamField>
+
+<Info>
+  View reports by opening `target/site/serenity/index.html` in a browser.
+</Info>
+
+## Common Gradle Commands
+
+<CodeGroup>
+
+```bash Clean Build
+./gradlew clean
+```
+
+```bash Run All Tests
+./gradlew test
+```
+
+```bash Clean + Test
+./gradlew clean test
+```
+
+```bash Generate Reports Only
+./gradlew aggregate
+```
+
+```bash Run Specific Test
+./gradlew test --tests "*LoginTest"
+```
+
+```bash Run with System Properties
+./gradlew test -Denvironment=qa -Dheadless=true
+```
+
+```bash Skip Tests
+./gradlew build -x test
+```
+
+```bash Verbose Output
+./gradlew test --info
+```
+
+```bash Debug Mode
+./gradlew test --debug
+```
+
+</CodeGroup>
+
+## Dependency Management Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Versions Aligned" icon="arrows-rotate">
+    All Serenity dependencies should use the same version
+  </Card>
+  <Card title="Use Version Variables" icon="code">
+    Centralize versions in `ext` block for easy updates
+  </Card>
+  <Card title="Regular Updates" icon="arrow-up">
+    Check for newer stable versions periodically
+  </Card>
+  <Card title="Test After Upgrades" icon="flask">
+    Run full test suite after dependency updates
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Build Failures
+
+<AccordionGroup>
+  <Accordion title="Java Version Mismatch">
+    Error: `Unsupported class file major version`
+    
+    **Solution**: Ensure Java 21 is installed or let Gradle download it:
+    ```bash
+    # Check Java version
+    ./gradlew -version
+    
+    # Gradle will auto-download Java 21 if toolchain is configured
+    ./gradlew clean test
+    ```
+  </Accordion>
+  
+  <Accordion title="Dependency Resolution Failures">
+    Error: `Could not resolve net.serenity-bdd:serenity-core:4.0.46`
+    
+    **Solution**: Check internet connection and Maven Central access:
+    ```bash
+    ./gradlew clean build --refresh-dependencies
+    ```
+  </Accordion>
+  
+  <Accordion title="Test Task Not Found">
+    Error: `Task 'test' not found`
+    
+    **Solution**: Ensure you're in the project root directory with `build.gradle`
+  </Accordion>
+  
+  <Accordion title="Reports Not Generated">
+    Check that `test.finalizedBy(aggregate)` is present in `build.gradle`
+    
+    Manually generate reports:
+    ```bash
+    ./gradlew aggregate
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Dependency Conflicts
+
+View dependency tree to identify conflicts:
+
+```bash
+./gradlew dependencies --configuration testRuntimeClasspath
+```
+
+## Upgrading Dependencies
+
+### Check for Updates
+
+```bash
+# Using Gradle versions plugin (if installed)
+./gradlew dependencyUpdates
+```
+
+### Update Serenity Version
+
+1. Update version in `build.gradle`:
+   ```gradle
+   ext {
+       serenityVersion = '4.1.0'  // New version
+   }
+   ```
+
+2. Update plugin version:
+   ```gradle
+   plugins {
+       id 'net.serenity-bdd.serenity-gradle-plugin' version '4.1.0'
+   }
+   ```
+
+3. Refresh dependencies:
+   ```bash
+   ./gradlew clean build --refresh-dependencies
+   ```
+
+<Warning>
+  Always test thoroughly after version upgrades. Check Serenity BDD release notes for breaking changes.
+</Warning>
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+```yaml .github/workflows/test.yml
+name: Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Run tests
+        run: ./gradlew clean test
+      - name: Publish reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: serenity-reports
+          path: target/site/serenity/
+```
+
+<Note>
+  Gradle toolchain will ensure Java 21 is used even if the system has a different version installed.
+</Note>

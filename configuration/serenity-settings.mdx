@@ -1,0 +1,396 @@
+---
+title: 'Serenity Settings'
+description: 'Serenity BDD framework configuration and reporting options'
+icon: 'gear'
+---
+
+## Overview
+
+Serenity-specific settings control test execution behavior, reporting, logging, and test organization. These settings are configured in both `serenity.conf` and `build.gradle`.
+
+## Serenity Configuration Block
+
+The main Serenity settings in `serenity.conf`:
+
+```hocon serenity.conf
+serenity {
+    take.screenshots = FOR_FAILURES
+    test.root = "org.btg.practual"
+    logging = QUIET
+    console.colors = true
+}
+```
+
+## Screenshot Configuration
+
+<ParamField path="serenity.take.screenshots" type="enum" default="FOR_FAILURES">
+  Controls when Serenity captures screenshots during test execution.
+  
+  **Options**:
+  - `FOR_FAILURES`: Only capture screenshots when tests fail (default)
+  - `BEFORE_AND_AFTER_EACH_STEP`: Capture before and after every step
+  - `AFTER_EACH_STEP`: Capture after every step
+  - `FOR_EACH_ACTION`: Capture for every user action
+  - `DISABLED`: No screenshots
+</ParamField>
+
+### Screenshot Strategy Comparison
+
+<CodeGroup>
+
+```hocon Failures Only (Recommended)
+serenity {
+    take.screenshots = FOR_FAILURES
+}
+```
+
+```hocon Verbose Debugging
+serenity {
+    take.screenshots = AFTER_EACH_STEP
+}
+```
+
+```hocon Performance Testing
+serenity {
+    take.screenshots = DISABLED
+}
+```
+
+</CodeGroup>
+
+<Note>
+  **`FOR_FAILURES`** is recommended for most projects as it:
+  - Minimizes test execution time
+  - Reduces report size
+  - Still provides debugging information when tests fail
+</Note>
+
+<Warning>
+  Using `BEFORE_AND_AFTER_EACH_STEP` or `AFTER_EACH_STEP` significantly increases test execution time and report size. Only use during active debugging.
+</Warning>
+
+## Test Root Package
+
+<ParamField path="serenity.test.root" type="string" default="org.btg.practual">
+  Specifies the root package for test classes. Serenity uses this to scan for:
+  - Cucumber step definitions
+  - Screenplay tasks and questions
+  - Page objects and interactions
+  - Custom actions
+</ParamField>
+
+This setting is defined in two places:
+
+<CodeGroup>
+
+```hocon serenity.conf
+serenity {
+    test.root = "org.btg.practual"
+}
+```
+
+```gradle build.gradle
+test {
+    systemProperty "serenity.test.root", "org.btg.practual"
+}
+
+serenity {
+    testRoot = "org.btg.practual"
+}
+```
+
+</CodeGroup>
+
+<Info>
+  Both configurations should match to ensure consistent scanning behavior. The `build.gradle` setting takes precedence during test execution.
+</Info>
+
+## Logging Configuration
+
+<ParamField path="serenity.logging" type="enum" default="QUIET">
+  Controls the verbosity of Serenity's console logging during test execution.
+  
+  **Options**:
+  - `QUIET`: Minimal logging, only errors and critical information
+  - `NORMAL`: Standard logging with test progress
+  - `VERBOSE`: Detailed logging including step execution
+</ParamField>
+
+```hocon serenity.conf
+serenity {
+    logging = QUIET
+}
+```
+
+<Note>
+  `QUIET` mode reduces console noise, making it easier to spot actual test failures. Test details are still captured in the HTML reports.
+</Note>
+
+## Console Colors
+
+<ParamField path="serenity.console.colors" type="boolean" default="true">
+  Enables colored console output for better readability of test results.
+  
+  When enabled:
+  - ✅ Passed tests appear in green
+  - ❌ Failed tests appear in red
+  - ⚠️ Skipped tests appear in yellow
+</ParamField>
+
+```hocon serenity.conf
+serenity {
+    console.colors = true
+}
+```
+
+<Info>
+  Some CI/CD systems may not support colored output. If you see color codes instead of colored text, set this to `false`.
+</Info>
+
+## Gradle Test Configuration
+
+Additional Serenity settings in `build.gradle`:
+
+```gradle build.gradle
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+
+    systemProperties System.getProperties()
+    systemProperty "serenity.test.root", "org.btg.practual"
+    systemProperty "serenity.project.name", "Makers BTG Tests"
+}
+```
+
+### System Properties
+
+<ParamField path="serenity.test.root" type="string">
+  **Value**: `org.btg.practual`
+  
+  Root package for scanning test classes and step definitions.
+</ParamField>
+
+<ParamField path="serenity.project.name" type="string">
+  **Value**: `Makers BTG Tests`
+  
+  Project name displayed in the Serenity HTML reports header.
+</ParamField>
+
+<ParamField path="systemProperties System.getProperties()" type="system">
+  Passes all JVM system properties to the test execution.
+  
+  This enables runtime configuration overrides:
+  ```bash
+  ./gradlew test -Denvironment=qa -Dwebdriver.driver=chrome
+  ```
+</ParamField>
+
+## Test Logging Configuration
+
+```gradle build.gradle
+testLogging {
+    events "passed", "skipped", "failed"
+    showStandardStreams = true
+}
+```
+
+<ParamField path="events" type="array">
+  Specifies which test events to log to the console.
+  
+  - `passed`: Log successful test completion
+  - `skipped`: Log skipped tests
+  - `failed`: Log test failures with stack traces
+</ParamField>
+
+<ParamField path="showStandardStreams" type="boolean" default="true">
+  When enabled, displays standard output (System.out) and error streams (System.err) in the console during test execution.
+  
+  Useful for debugging but can create verbose output.
+</ParamField>
+
+## Serenity Plugin Configuration
+
+```gradle build.gradle
+serenity {
+    testRoot = "org.btg.practual"
+    requirementsBaseDir = "src/test/resources/features"
+    reports = ["html"]
+}
+```
+
+<ParamField path="testRoot" type="string">
+  **Value**: `org.btg.practual`
+  
+  Root package for test scanning (same as systemProperty).
+</ParamField>
+
+<ParamField path="requirementsBaseDir" type="string">
+  **Value**: `src/test/resources/features`
+  
+  Directory containing Cucumber feature files. Serenity uses this to:
+  - Generate requirements documentation
+  - Link test results to feature files
+  - Create traceability reports
+</ParamField>
+
+<ParamField path="reports" type="array">
+  **Value**: `["html"]`
+  
+  Report formats to generate after test execution.
+  
+  **Available formats**:
+  - `html`: Rich HTML reports with screenshots (default)
+  - `json`: JSON output for integration with other tools
+  - `xml`: JUnit XML format
+</ParamField>
+
+<Info>
+  The HTML report is the primary Serenity report format, providing:
+  - Visual test results with screenshots
+  - Step-by-step execution details
+  - Requirements traceability
+  - Test execution statistics
+</Info>
+
+## Report Customization
+
+### Project Name and Branding
+
+```gradle build.gradle
+test {
+    systemProperty "serenity.project.name", "Makers BTG Tests"
+    systemProperty "serenity.report.title", "Test Execution Report"
+}
+```
+
+### Custom Report Output Directory
+
+```gradle build.gradle
+serenity {
+    outputDirectory = file("${project.buildDir}/custom-reports")
+}
+```
+
+### Additional Report Formats
+
+```gradle build.gradle
+serenity {
+    reports = ["html", "json", "xml"]
+}
+```
+
+## Gradle Continue on Failure
+
+```gradle build.gradle
+gradle.startParameter.continueOnFailure = true
+```
+
+<ParamField path="gradle.startParameter.continueOnFailure" type="boolean" default="true">
+  Ensures Gradle continues executing all tests even if some fail, instead of stopping at the first failure.
+  
+  **Impact**:
+  - All tests run to completion
+  - Complete test report is generated
+  - Build still fails if any test fails, but you see all results
+</ParamField>
+
+<Note>
+  This is crucial for CI/CD pipelines to get complete test coverage feedback rather than partial results.
+</Note>
+
+## Common Configuration Patterns
+
+### Development Mode (Verbose)
+
+```hocon serenity.conf
+serenity {
+    take.screenshots = AFTER_EACH_STEP
+    logging = VERBOSE
+    console.colors = true
+}
+```
+
+### CI/CD Mode (Optimized)
+
+```hocon serenity.conf
+serenity {
+    take.screenshots = FOR_FAILURES
+    logging = QUIET
+    console.colors = false
+}
+```
+
+### Performance Testing Mode
+
+```hocon serenity.conf
+serenity {
+    take.screenshots = DISABLED
+    logging = QUIET
+}
+```
+
+## Troubleshooting
+
+### Reports Not Generated
+
+<AccordionGroup>
+  <Accordion title="Verify Serenity plugin is applied">
+    Check that `build.gradle` includes:
+    ```gradle
+    plugins {
+        id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Check test.finalizedBy(aggregate)">
+    Ensure report generation is triggered:
+    ```gradle
+    test.finalizedBy(aggregate)
+    ```
+  </Accordion>
+  
+  <Accordion title="Look for output directory">
+    Reports are generated in `target/site/serenity/` by default.
+  </Accordion>
+</AccordionGroup>
+
+### Step Definitions Not Found
+
+Verify `test.root` matches your package structure:
+
+```bash
+# If your tests are in src/test/java/org/btg/practual/
+serenity.test.root = "org.btg.practual"
+```
+
+### Large Report Files
+
+Reduce screenshot frequency:
+
+```hocon
+serenity {
+    take.screenshots = FOR_FAILURES
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use FOR_FAILURES Screenshots" icon="camera">
+    Balances debugging capability with performance
+  </Card>
+  <Card title="Keep Logging QUIET" icon="volume-xmark">
+    Reduces console noise, details still in reports
+  </Card>
+  <Card title="Enable continueOnFailure" icon="forward">
+    Get complete test results in CI/CD
+  </Card>
+  <Card title="Set Project Name" icon="tag">
+    Makes reports easily identifiable
+  </Card>
+</CardGroup>

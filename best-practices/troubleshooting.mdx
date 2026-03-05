@@ -1,0 +1,506 @@
+---
+title: "Troubleshooting"
+description: "Common issues and solutions for the Makers BTG Tests framework"
+---
+
+## Common Issues
+
+This guide addresses the most frequently encountered issues when working with the Makers BTG Tests framework. Each section provides diagnostic steps and proven solutions.
+
+<Note>
+Before troubleshooting, ensure you're using Java 21 and have the latest dependencies from `build.gradle`.
+</Note>
+
+## WebDriver and Browser Issues
+
+<AccordionGroup>
+  <Accordion title="Chrome browser not starting" icon="chrome">
+    **Symptoms:**
+    - Error: `SessionNotCreatedException: Could not start a new session`
+    - Chrome process fails to launch
+    - Timeout waiting for browser
+    
+    **Solutions:**
+    
+    1. **Verify Chrome Installation**
+       ```bash
+       google-chrome --version
+       ```
+       Ensure Chrome is installed and accessible.
+    
+    2. **Update ChromeDriver via Selenium Manager**
+       
+       Serenity 4.0.46 uses Selenium Manager which handles driver management automatically. If issues persist:
+       
+       ```bash
+       # Clear Selenium cache
+       rm -rf ~/.cache/selenium
+       ```
+       
+       Selenium Manager will re-download the correct driver on next run.
+    
+    3. **Check for Port Conflicts**
+       ```bash
+       # Check if default debugging port is in use
+       lsof -i :9222
+       ```
+       
+       If port is occupied, kill the process or configure a different port in your WebDriver setup.
+    
+    4. **Run in Headless Mode (for CI/CD)**
+       
+       Add to `serenity.properties`:
+       ```properties
+       chrome.switches=--headless,--disable-gpu,--no-sandbox
+       ```
+  </Accordion>
+  
+  <Accordion title="WebDriver version mismatch" icon="triangle-exclamation">
+    **Symptoms:**
+    - Error: `SessionNotCreatedException: This version of ChromeDriver only supports Chrome version X`
+    - Browser opens but fails to connect
+    
+    **Solutions:**
+    
+    1. **Let Selenium Manager Handle It**
+       
+       The framework uses Selenium Manager (built into Selenium 4.6+) which automatically downloads the correct driver version.
+       
+       <Tip>
+       With Serenity 4.0.46 and Selenium Manager, manual WebDriver management is unnecessary.
+       </Tip>
+    
+    2. **Update Chrome Browser**
+       ```bash
+       # Ubuntu/Debian
+       sudo apt update && sudo apt upgrade google-chrome-stable
+       
+       # macOS
+       brew update && brew upgrade --cask google-chrome
+       ```
+    
+    3. **Force Selenium Manager Refresh**
+       ```bash
+       rm -rf ~/.cache/selenium
+       ./gradlew clean test
+       ```
+  </Accordion>
+  
+  <Accordion title="ElementNotInteractableException" icon="hand-pointer">
+    **Symptoms:**
+    - Error: `ElementNotInteractableException: element not interactable`
+    - Element is present but cannot be clicked
+    
+    **Solutions:**
+    
+    1. **Wait for Element to be Clickable**
+       ```java
+       WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+       wait.until(ExpectedConditions.elementToBeClickable(element));
+       element.click();
+       ```
+    
+    2. **Scroll Element into View**
+       ```java
+       ((JavascriptExecutor) driver).executeScript(
+           "arguments[0].scrollIntoView(true);", element
+       );
+       Thread.sleep(500); // Allow scroll animation
+       element.click();
+       ```
+    
+    3. **Check for Overlaying Elements**
+       
+       Overlays, modals, or loading spinners may block interaction. Wait for them to disappear:
+       ```java
+       wait.until(ExpectedConditions.invisibilityOfElementLocated(
+           By.className("loading-spinner")
+       ));
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Test Execution Issues
+
+<AccordionGroup>
+  <Accordion title="Step definition not found" icon="question">
+    **Symptoms:**
+    - Error: `Undefined. Implement missing steps`
+    - Cucumber cannot match Gherkin steps to Java methods
+    
+    **Solutions:**
+    
+    1. **Verify Glue Path Configuration**
+       
+       In `CucumberRunner.java`:
+       ```java
+       @ConfigurationParameter(
+           key = GLUE_PROPERTY_NAME, 
+           value = "org.btg.practual.stepDefinitions"
+       )
+       ```
+       
+       Ensure this matches your step definition package.
+    
+    2. **Check Step Definition Annotation**
+       
+       Verify the Gherkin text exactly matches the annotation:
+       ```java
+       // Feature file
+       Dado el usuario ingresa a la web de Chronos
+       
+       // Step definition - must match exactly
+       @Dado("el usuario ingresa a la web de Chronos")
+       public void el_usuario_ingresa_a_la_web_de_chronos() {
+       ```
+    
+    3. **Import Correct Cucumber Annotations**
+       ```java
+       // ✅ Correct - Spanish annotations
+       import io.cucumber.java.es.Dado;
+       import io.cucumber.java.es.Cuando;
+       import io.cucumber.java.es.Entonces;
+       
+       // ❌ Wrong - English annotations
+       import io.cucumber.java.en.Given;
+       ```
+    
+    4. **Rebuild the Project**
+       ```bash
+       ./gradlew clean build
+       ```
+  </Accordion>
+  
+  <Accordion title="Test not found or not executed" icon="file-slash">
+    **Symptoms:**
+    - Tests don't run when executing `./gradlew test`
+    - Gradle reports 0 tests executed
+    
+    **Solutions:**
+    
+    1. **Check Tag Filtering**
+       
+       Verify tag configuration in `CucumberRunner.java`:
+       ```java
+       @ConfigurationParameter(
+           key = FILTER_TAGS_PROPERTY_NAME, 
+           value = "@test"
+       )
+       ```
+       
+       Ensure your scenarios have the `@test` tag:
+       ```gherkin
+       @test
+       Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+       ```
+    
+    2. **Verify Feature File Location**
+       
+       Feature files must be in `src/test/resources/features/`:
+       ```
+       src/test/resources/
+       └── features/
+           └── GeneracionReporte.feature
+       ```
+    
+    3. **Check JUnit Configuration**
+       
+       In `build.gradle`, verify:
+       ```groovy
+       test {
+           useJUnitPlatform()
+       }
+       ```
+    
+    4. **Run with Verbose Output**
+       ```bash
+       ./gradlew test --info
+       ```
+       
+       This reveals why tests are being filtered or skipped.
+  </Accordion>
+  
+  <Accordion title="ParameterizedTest not executing with examples" icon="table">
+    **Symptoms:**
+    - `Esquema del escenario` (Scenario Outline) runs 0 times
+    - Examples table data not being used
+    
+    **Solutions:**
+    
+    1. **Verify Examples Table Syntax**
+       ```gherkin
+       Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+         Dado el usuario ingresa a la web de Chronos
+         Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+         Entonces se genera el reporte "<report>" de manera exitosa
+         Ejemplos:
+           | report | company    | report_date |
+           | 417    | compañia 1 | 2026-02-01  |
+       ```
+       
+       Note: Use `Ejemplos:` (Spanish) not `Examples:`
+    
+    2. **Check Language Declaration**
+       
+       Ensure feature file starts with:
+       ```gherkin
+       #language:es
+       ```
+    
+    3. **Validate Parameter Names Match**
+       
+       Parameter names in `<>` must match table headers exactly.
+  </Accordion>
+</AccordionGroup>
+
+## Build and Dependency Issues
+
+<AccordionGroup>
+  <Accordion title="Gradle build fails" icon="hammer">
+    **Symptoms:**
+    - Error: `Could not resolve dependencies`
+    - Build fails with compilation errors
+    
+    **Solutions:**
+    
+    1. **Clean and Rebuild**
+       ```bash
+       ./gradlew clean build --refresh-dependencies
+       ```
+    
+    2. **Check Java Version**
+       ```bash
+       java -version
+       ```
+       
+       Must be Java 21 (as specified in `build.gradle`):
+       ```groovy
+       java {
+           toolchain {
+               languageVersion = JavaLanguageVersion.of(21)
+           }
+       }
+       ```
+    
+    3. **Verify Gradle Wrapper**
+       ```bash
+       ./gradlew --version
+       ```
+       
+       If issues persist, regenerate wrapper:
+       ```bash
+       gradle wrapper --gradle-version 8.5
+       ```
+    
+    4. **Clear Gradle Cache**
+       ```bash
+       rm -rf ~/.gradle/caches
+       ./gradlew clean build
+       ```
+  </Accordion>
+  
+  <Accordion title="Java version mismatch" icon="coffee">
+    **Symptoms:**
+    - Error: `Unsupported class file major version`
+    - Error: `java.lang.UnsupportedClassVersionError`
+    
+    **Solutions:**
+    
+    1. **Install Java 21**
+       ```bash
+       # Ubuntu/Debian
+       sudo apt install openjdk-21-jdk
+       
+       # macOS (using Homebrew)
+       brew install openjdk@21
+       ```
+    
+    2. **Set JAVA_HOME**
+       ```bash
+       # Linux/macOS
+       export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+       export PATH=$JAVA_HOME/bin:$PATH
+       
+       # Verify
+       echo $JAVA_HOME
+       java -version
+       ```
+    
+    3. **Use Gradle Toolchain**
+       
+       The `build.gradle` is configured to use Java 21 toolchain, which Gradle will automatically download if needed:
+       ```groovy
+       java {
+           toolchain {
+               languageVersion = JavaLanguageVersion.of(21)
+           }
+       }
+       ```
+  </Accordion>
+  
+  <Accordion title="Dependency conflicts" icon="code-merge">
+    **Symptoms:**
+    - Error: `NoSuchMethodError` or `ClassNotFoundException`
+    - Tests fail with unexpected errors after dependency updates
+    
+    **Solutions:**
+    
+    1. **Review Dependency Tree**
+       ```bash
+       ./gradlew dependencies --configuration testRuntimeClasspath
+       ```
+       
+       Look for conflicting versions of the same library.
+    
+    2. **Use Serenity BOM**
+       
+       Ensure consistent Serenity versions:
+       ```groovy
+       ext {
+           serenityVersion = '4.0.46'
+       }
+       
+       dependencies {
+           implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+           implementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+           implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+       }
+       ```
+    
+    3. **Force Dependency Version**
+       
+       If a transitive dependency causes issues:
+       ```groovy
+       configurations.all {
+           resolutionStrategy {
+               force 'org.seleniumhq.selenium:selenium-java:4.15.0'
+           }
+       }
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Serenity Report Issues
+
+<AccordionGroup>
+  <Accordion title="Serenity reports not generating" icon="chart-bar">
+    **Symptoms:**
+    - No `target/site/serenity` directory after test execution
+    - Reports are empty or incomplete
+    
+    **Solutions:**
+    
+    1. **Verify Serenity Plugin Configuration**
+       
+       In `build.gradle`:
+       ```groovy
+       plugins {
+           id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+       }
+       
+       serenity {
+           testRoot = "org.btg.practual"
+           requirementsBaseDir = "src/test/resources/features"
+           reports = ["html"]
+       }
+       ```
+    
+    2. **Ensure aggregate Task Runs**
+       
+       In `build.gradle`:
+       ```groovy
+       test.finalizedBy(aggregate)
+       ```
+       
+       Or run manually:
+       ```bash
+       ./gradlew test aggregate
+       ```
+    
+    3. **Check for Test Execution**
+       
+       Reports only generate if tests actually run. Verify tests executed:
+       ```bash
+       ./gradlew test --info
+       ```
+    
+    4. **Verify Serenity Reporter Plugin**
+       
+       In `CucumberRunner.java`:
+       ```java
+       @ConfigurationParameter(
+           key = PLUGIN_PROPERTY_NAME,
+           value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+       )
+       ```
+  </Accordion>
+  
+  <Accordion title="Reports show 'No requirements' or empty feature list" icon="list">
+    **Symptoms:**
+    - Serenity reports generate but show no features or requirements
+    - Test results are not associated with features
+    
+    **Solutions:**
+    
+    1. **Configure Requirements Base Directory**
+       
+       In `build.gradle`:
+       ```groovy
+       serenity {
+           requirementsBaseDir = "src/test/resources/features"
+       }
+       ```
+    
+    2. **Verify Feature File Structure**
+       
+       Feature files must have proper structure:
+       ```gherkin
+       #language:es
+       Característica: Generación de reportes desde la web de Chronos
+       
+         @test
+         Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+       ```
+    
+    3. **Check testRoot Configuration**
+       
+       In `build.gradle`:
+       ```groovy
+       test {
+           systemProperty "serenity.test.root", "org.btg.practual"
+       }
+       
+       serenity {
+           testRoot = "org.btg.practual"
+       }
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Getting More Help
+
+<CardGroup cols={2}>
+  <Card title="Serenity BDD Documentation" icon="book" href="https://serenity-bdd.github.io/docs/">
+    Official Serenity BDD documentation and guides
+  </Card>
+  
+  <Card title="Cucumber Documentation" icon="cucumber" href="https://cucumber.io/docs/cucumber/">
+    Cucumber reference and best practices
+  </Card>
+  
+  <Card title="Selenium Documentation" icon="browser" href="https://www.selenium.dev/documentation/">
+    WebDriver and browser automation guides
+  </Card>
+  
+  <Card title="Gradle Documentation" icon="hammer" href="https://docs.gradle.org/">
+    Build configuration and troubleshooting
+  </Card>
+</CardGroup>
+
+<Tip>
+When asking for help, always include:
+- Full error message and stack trace
+- Java version (`java -version`)
+- Gradle version (`./gradlew --version`)
+- Relevant code snippets (feature file, step definition, runner)
+</Tip>

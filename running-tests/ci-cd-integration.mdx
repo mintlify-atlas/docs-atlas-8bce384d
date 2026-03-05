@@ -1,0 +1,639 @@
+---
+title: CI/CD Integration
+description: Setting up automated test execution in continuous integration pipelines
+---
+
+Integrating automated tests into CI/CD pipelines ensures continuous quality validation. This guide covers configuration for popular CI/CD platforms.
+
+## Prerequisites
+
+Before configuring CI/CD, ensure:
+
+<Steps>
+  <Step title="Java 21 Available">
+    The build requires Java 21. Most CI platforms provide this through toolchain configuration.
+  </Step>
+
+  <Step title="Gradle Wrapper Committed">
+    Ensure `gradlew` and `gradle/wrapper/` are in version control:
+    ```bash
+    git add gradlew gradle/wrapper/
+    git commit -m "Add Gradle wrapper"
+    ```
+  </Step>
+
+  <Step title="Headless Browser Support">
+    Configure Chrome to run in headless mode for CI environments.
+  </Step>
+</Steps>
+
+## Headless Browser Configuration
+
+CI/CD environments typically don't have displays. Configure Chrome for headless execution:
+
+### Option 1: serenity.conf (Recommended)
+
+Add headless mode to `src/test/resources/serenity.conf`:
+
+```hocon
+webdriver {
+  driver = chrome
+  autodownload = true
+
+  capabilities {
+    browserName = "chrome"
+    acceptInsecureCerts = true
+
+    "goog:chromeOptions" {
+      args = [
+        "remote-allow-origins=*",
+        "start-maximized",
+        "incognito",
+        "disable-infobars",
+        "disable-gpu",
+        "disable-default-apps",
+        "disable-popup-blocking",
+        "disable-dev-shm-usage",
+        "no-sandbox",
+        "headless=new"  # Add this for CI environments
+      ]
+    }
+  }
+}
+```
+
+### Option 2: Environment-Specific Configuration
+
+Create CI-specific config in `src/test/resources/serenity.ci.conf`:
+
+```hocon
+include "serenity.conf"
+
+webdriver {
+  capabilities {
+    "goog:chromeOptions" {
+      args = ${webdriver.capabilities."goog:chromeOptions".args} [
+        "headless=new"
+      ]
+    }
+  }
+}
+```
+
+Activate in CI:
+
+```bash
+./gradlew test -Dserenity.conf=serenity.ci.conf
+```
+
+<Note>
+Use `headless=new` instead of `--headless` for Chrome 109+. The new headless mode is more stable and feature-complete.
+</Note>
+
+## Environment Variables
+
+The test framework respects these environment variables:
+
+### Test Configuration
+
+```bash
+export ENVIRONMENT=qa
+export SERENITY_TAKE_SCREENSHOTS=FOR_FAILURES
+export CUCUMBER_FILTER_TAGS="@smoke"
+```
+
+### Browser Configuration
+
+```bash
+export WEBDRIVER_DRIVER=chrome
+export CHROME_OPTIONS="--headless=new --disable-gpu"
+```
+
+### Reporting Configuration
+
+```bash
+export SERENITY_PROJECT_NAME="Makers BTG Tests"
+export SERENITY_LOGGING=QUIET
+```
+
+Pass to Gradle via system properties:
+
+```bash
+./gradlew test \
+  -Denvironment=${ENVIRONMENT} \
+  -Dserenity.take.screenshots=${SERENITY_TAKE_SCREENSHOTS} \
+  -Dcucumber.filter.tags="${CUCUMBER_FILTER_TAGS}"
+```
+
+## GitHub Actions
+
+Complete workflow for GitHub Actions:
+
+```yaml
+name: Test Automation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'  # Run daily at 2 AM UTC
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      
+      - name: Run tests
+        run: ./gradlew clean test aggregate
+        env:
+          ENVIRONMENT: qa
+          SERENITY_TAKE_SCREENSHOTS: FOR_FAILURES
+      
+      - name: Publish test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: serenity-report
+          path: target/site/serenity/
+          retention-days: 30
+      
+      - name: Publish test summary
+        uses: test-summary/action@v2
+        if: always()
+        with:
+          paths: "target/site/serenity/*.json"
+```
+
+<Accordion title="GitHub Actions Best Practices">
+  - Use `cache: 'gradle'` to cache dependencies
+  - Set `if: always()` for artifact upload to capture failed test reports
+  - Use `retention-days` to manage artifact storage costs
+  - Run on schedule for continuous monitoring
+  - Use matrix builds for multi-environment testing
+</Accordion>
+
+### Multi-Environment Testing
+
+Test against multiple environments in parallel:
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [qa, stg]
+        tags: ['@smoke', '@regression']
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Run tests
+        run: ./gradlew clean test aggregate
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        continue-on-error: true
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: serenity-report-${{ matrix.environment }}-${{ matrix.tags }}
+          path: target/site/serenity/
+```
+
+## Jenkins
+
+Jenkins pipeline configuration:
+
+```groovy
+pipeline {
+    agent any
+    
+    tools {
+        jdk 'JDK-21'
+    }
+    
+    environment {
+        ENVIRONMENT = 'qa'
+        SERENITY_TAKE_SCREENSHOTS = 'FOR_FAILURES'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    chmod +x gradlew
+                    ./gradlew clean test aggregate \
+                        -Denvironment=${ENVIRONMENT} \
+                        -Dserenity.take.screenshots=${SERENITY_TAKE_SCREENSHOTS}
+                '''
+            }
+        }
+        
+        stage('Publish Reports') {
+            steps {
+                publishHTML([
+                    reportName: 'Serenity Report',
+                    reportDir: 'target/site/serenity',
+                    reportFiles: 'index.html',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
+                ])
+            }
+        }
+    }
+    
+    post {
+        always {
+            archiveArtifacts artifacts: 'target/site/serenity/**/*', allowEmptyArchive: true
+            
+            junit testResults: 'target/surefire-reports/**/*.xml', allowEmptyResults: true
+        }
+        
+        failure {
+            emailext(
+                subject: "Test Execution Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Test execution failed. View report at ${env.BUILD_URL}Serenity_Report/",
+                to: "team@example.com"
+            )
+        }
+    }
+}
+```
+
+<Accordion title="Jenkins Configuration Tips">
+  - Install HTML Publisher Plugin for report viewing
+  - Configure JDK 21 in Global Tool Configuration
+  - Use Jenkins credentials for environment-specific secrets
+  - Set up email notifications for test failures
+  - Archive reports for historical tracking
+</Accordion>
+
+### Parameterized Jenkins Build
+
+Allow users to select environment and tags:
+
+```groovy
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['qa', 'stg'],
+            description: 'Target environment'
+        )
+        string(
+            name: 'TAGS',
+            defaultValue: '@test',
+            description: 'Cucumber tags to filter tests'
+        )
+    }
+    
+    stages {
+        stage('Run Tests') {
+            steps {
+                sh """
+                    ./gradlew clean test aggregate \
+                        -Denvironment=${params.ENVIRONMENT} \
+                        -Dcucumber.filter.tags="${params.TAGS}"
+                """
+            }
+        }
+    }
+}
+```
+
+## GitLab CI
+
+GitLab CI configuration (`.gitlab-ci.yml`):
+
+```yaml
+image: eclipse-temurin:21-jdk
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  ENVIRONMENT: "qa"
+
+stages:
+  - test
+  - report
+
+before_script:
+  - chmod +x gradlew
+  - export GRADLE_USER_HOME=$(pwd)/.gradle
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+test:smoke:
+  stage: test
+  script:
+    - ./gradlew clean test aggregate -Dcucumber.filter.tags="@smoke"
+  artifacts:
+    when: always
+    paths:
+      - target/site/serenity/
+    expire_in: 30 days
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+  only:
+    - merge_requests
+    - main
+
+test:regression:
+  stage: test
+  script:
+    - ./gradlew clean test aggregate -Dcucumber.filter.tags="@regression"
+  artifacts:
+    when: always
+    paths:
+      - target/site/serenity/
+    expire_in: 30 days
+  only:
+    - schedules
+    - main
+
+pages:
+  stage: report
+  dependencies:
+    - test:smoke
+  script:
+    - mkdir -p public
+    - cp -r target/site/serenity/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+```
+
+<Note>
+GitLab's `pages` job publishes reports to GitLab Pages, making them accessible at `https://<username>.gitlab.io/<project>/`
+</Note>
+
+## Azure DevOps
+
+Azure Pipelines configuration (`azure-pipelines.yml`):
+
+```yaml
+trigger:
+  - main
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  ENVIRONMENT: 'qa'
+  JAVA_VERSION: '21'
+
+steps:
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: '$(JAVA_VERSION)'
+      jdkArchitectureOption: 'x64'
+      jdkSourceOption: 'PreInstalled'
+
+  - task: Gradle@3
+    inputs:
+      gradleWrapperFile: 'gradlew'
+      tasks: 'clean test aggregate'
+      options: '-Denvironment=$(ENVIRONMENT) -Dserenity.take.screenshots=FOR_FAILURES'
+      javaHomeOption: 'JDKVersion'
+      jdkVersionOption: '$(JAVA_VERSION)'
+      publishJUnitResults: true
+      testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+
+  - task: PublishTestResults@2
+    condition: always()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+      failTaskOnFailedTests: true
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      pathToPublish: 'target/site/serenity'
+      artifactName: 'serenity-report'
+      publishLocation: 'Container'
+```
+
+## Docker-Based CI
+
+Run tests in Docker for consistent environments:
+
+### Dockerfile
+
+```dockerfile
+FROM eclipse-temurin:21-jdk
+
+# Install Chrome for Selenium
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    ca-certificates \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+COPY . .
+
+RUN chmod +x gradlew
+
+CMD ["./gradlew", "clean", "test", "aggregate"]
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  test:
+    build: .
+    environment:
+      - ENVIRONMENT=qa
+      - SERENITY_TAKE_SCREENSHOTS=FOR_FAILURES
+    volumes:
+      - ./target:/workspace/target
+```
+
+Run tests:
+
+```bash
+docker-compose up --build
+```
+
+## Report Publishing
+
+### GitHub Pages Deployment
+
+Publish reports to GitHub Pages from GitHub Actions:
+
+```yaml
+- name: Deploy to GitHub Pages
+  uses: peaceiris/actions-gh-pages@v3
+  if: github.ref == 'refs/heads/main'
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    publish_dir: ./target/site/serenity
+    destination_dir: reports/${{ github.run_number }}
+```
+
+Access at: `https://<username>.github.io/<repo>/reports/<run-number>/`
+
+### AWS S3 Deployment
+
+Upload reports to S3:
+
+```bash
+aws s3 sync target/site/serenity/ s3://my-bucket/reports/${BUILD_NUMBER}/ \
+  --acl public-read
+```
+
+### Report Dashboard Integration
+
+Integrate with test management tools:
+
+- **Allure** - Convert Serenity JSON to Allure format
+- **ReportPortal** - Push results via API
+- **TestRail** - Update test cases with results
+- **Jira Xray** - Sync test execution status
+
+## CI/CD Best Practices
+
+<Steps>
+  <Step title="Fast Feedback">
+    Run smoke tests on every commit:
+    ```bash
+    ./gradlew test -Dcucumber.filter.tags="@smoke"
+    ```
+    Run full regression on schedule or before releases.
+  </Step>
+
+  <Step title="Parallel Execution">
+    Split tests across multiple CI jobs:
+    ```yaml
+    strategy:
+      matrix:
+        tags: ['@smoke', '@regression', '@integration']
+    ```
+  </Step>
+
+  <Step title="Artifact Management">
+    - Archive test reports as build artifacts
+    - Set retention policies (e.g., 30 days)
+    - Keep release reports permanently
+    - Compress reports to save storage
+  </Step>
+
+  <Step title="Failure Notifications">
+    Configure alerts for test failures:
+    - Slack notifications
+    - Email alerts
+    - Jira ticket creation
+    - Dashboard updates
+  </Step>
+
+  <Step title="Environment Isolation">
+    - Use dedicated test environments
+    - Reset data between runs
+    - Avoid dependencies on external services
+    - Use test doubles/mocks where possible
+  </Step>
+</Steps>
+
+## Troubleshooting CI Execution
+
+### Chrome Driver Issues
+
+If Chrome driver fails to initialize:
+
+1. Verify Chrome is installed: `google-chrome --version`
+2. Check Selenium Manager auto-download is enabled:
+   ```hocon
+   webdriver {
+     autodownload = true
+   }
+   ```
+3. Ensure headless mode is configured
+4. Check for display server errors in logs
+
+### Memory Issues
+
+If tests fail with OutOfMemoryError:
+
+```bash
+export GRADLE_OPTS="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+./gradlew clean test aggregate
+```
+
+Or in CI config:
+
+```yaml
+environment:
+  GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+```
+
+### Permission Errors
+
+Ensure Gradle wrapper is executable:
+
+```yaml
+- name: Grant execute permission
+  run: chmod +x gradlew
+```
+
+### Flaky Tests
+
+Handle intermittent failures:
+
+1. Tag flaky tests: `@flaky`
+2. Exclude from critical pipelines: `-Dcucumber.filter.tags="not @flaky"`
+3. Run flaky tests separately with retries
+4. Investigate and fix root causes
+
+<Tip>
+Use `gradle.startParameter.continueOnFailure = true` (already configured) to ensure all tests run even if some fail, providing complete feedback in CI reports.
+</Tip>

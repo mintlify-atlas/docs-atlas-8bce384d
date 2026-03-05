@@ -1,0 +1,321 @@
+---
+title: 'WebDriver Configuration'
+description: 'Browser automation settings and Chrome driver configuration'
+icon: 'browser'
+---
+
+## Overview
+
+The WebDriver configuration in `serenity.conf` controls browser automation behavior, including driver selection, capabilities, and Chrome-specific options.
+
+## Basic WebDriver Settings
+
+```hocon serenity.conf
+webdriver {
+  driver = chrome
+  autodownload = true
+  
+  capabilities {
+    browserName = "chrome"
+    acceptInsecureCerts = true
+    
+    "goog:chromeOptions" {
+      args = [
+        "remote-allow-origins=*",
+        "start-maximized",
+        "incognito",
+        "disable-infobars",
+        "disable-gpu",
+        "disable-default-apps",
+        "disable-popup-blocking",
+        "disable-dev-shm-usage",
+        "no-sandbox"
+      ]
+    }
+  }
+}
+```
+
+## Driver Configuration
+
+<ParamField path="webdriver.driver" type="string" default="chrome">
+  Specifies the browser to use for test execution.
+  
+  **Supported values**: `chrome`, `firefox`, `edge`, `safari`
+</ParamField>
+
+<ParamField path="webdriver.autodownload" type="boolean" default="true">
+  Enables Selenium Manager to automatically download and manage browser drivers.
+  
+  When set to `true`, you don't need to manually download ChromeDriver or other browser drivers - Selenium Manager handles this automatically.
+</ParamField>
+
+<Info>
+  Selenium Manager (autodownload) was introduced in Selenium 4.6+ and eliminates the need for manual driver management. It automatically downloads the correct driver version matching your installed browser.
+</Info>
+
+## Browser Capabilities
+
+### Standard Capabilities
+
+<ParamField path="capabilities.browserName" type="string">
+  Explicitly sets the browser name for WebDriver capabilities.
+  
+  **Value**: `chrome`
+</ParamField>
+
+<ParamField path="capabilities.acceptInsecureCerts" type="boolean" default="true">
+  Allows the browser to accept self-signed or invalid SSL certificates.
+  
+  Essential for testing applications in QA/Staging environments that may use self-signed certificates.
+</ParamField>
+
+## Chrome Options
+
+The `goog:chromeOptions` section configures Chrome-specific behavior through command-line arguments:
+
+### Chrome Arguments Explained
+
+<AccordionGroup>
+  <Accordion title="remote-allow-origins=*">
+    **Purpose**: Allows remote connections from any origin
+    
+    **Why needed**: Required for ChromeDriver 109+ to accept connections from test frameworks. Prevents CORS-related connection issues between the test runner and browser driver.
+    
+    **Impact**: Essential for test execution to work properly with recent Chrome versions.
+  </Accordion>
+  
+  <Accordion title="start-maximized">
+    **Purpose**: Launches the browser window in maximized state
+    
+    **Why needed**: Ensures consistent viewport size across test runs and prevents element visibility issues that can occur with smaller windows.
+    
+    **Impact**: Improves test stability by providing maximum screen space for interactions.
+  </Accordion>
+  
+  <Accordion title="incognito">
+    **Purpose**: Opens Chrome in incognito (private) mode
+    
+    **Why needed**: Starts with a clean slate - no cookies, cache, or browsing history. Each test session is isolated from previous runs.
+    
+    **Impact**: Prevents test pollution from cached data and ensures repeatable test conditions.
+  </Accordion>
+  
+  <Accordion title="disable-infobars">
+    **Purpose**: Disables Chrome's information bars
+    
+    **Why needed**: Removes the "Chrome is being controlled by automated test software" banner that can interfere with element location.
+    
+    **Impact**: Cleaner test execution without UI distractions.
+  </Accordion>
+  
+  <Accordion title="disable-gpu">
+    **Purpose**: Disables GPU hardware acceleration
+    
+    **Why needed**: Prevents GPU-related crashes in headless or CI environments where GPU may not be available or properly configured.
+    
+    **Impact**: Increases stability in containerized and CI/CD environments.
+  </Accordion>
+  
+  <Accordion title="disable-default-apps">
+    **Purpose**: Prevents Chrome from installing default apps
+    
+    **Why needed**: Speeds up browser startup by skipping default app installation/checking.
+    
+    **Impact**: Faster test execution, especially for multiple test runs.
+  </Accordion>
+  
+  <Accordion title="disable-popup-blocking">
+    **Purpose**: Disables Chrome's built-in popup blocker
+    
+    **Why needed**: Allows tests to interact with legitimate popup windows without being blocked.
+    
+    **Impact**: Essential if your application uses popups for authentication, dialogs, or other features.
+  </Accordion>
+  
+  <Accordion title="disable-dev-shm-usage">
+    **Purpose**: Disables the use of `/dev/shm` shared memory
+    
+    **Why needed**: Prevents crashes in Docker containers or environments with limited shared memory (default is 64MB in Docker).
+    
+    **Impact**: Critical for running tests in containerized CI/CD pipelines.
+  </Accordion>
+  
+  <Accordion title="no-sandbox">
+    **Purpose**: Disables Chrome's sandbox security feature
+    
+    **Why needed**: Required for running Chrome in Docker containers or environments without proper sandboxing support.
+    
+    **Impact**: Enables test execution in restricted environments like Docker, but should be used carefully.
+    
+    <Warning>
+      The `no-sandbox` option reduces security. Only use it in controlled test environments, never in production browsing.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Headless Mode
+
+To run tests in headless mode (without visible browser window), add the headless argument:
+
+<CodeGroup>
+
+```hocon serenity.conf (Headless)
+webdriver {
+  capabilities {
+    "goog:chromeOptions" {
+      args = [
+        "remote-allow-origins=*",
+        "start-maximized",
+        "incognito",
+        "disable-infobars",
+        "disable-gpu",
+        "disable-default-apps",
+        "disable-popup-blocking",
+        "disable-dev-shm-usage",
+        "no-sandbox",
+        "headless=new"
+      ]
+    }
+  }
+}
+```
+
+```bash Runtime Override
+./gradlew test -Dheadless=true
+```
+
+</CodeGroup>
+
+<Note>
+  Use `headless=new` instead of the deprecated `--headless` flag for Chrome 109+. The new headless mode provides better compatibility and performance.
+</Note>
+
+## Browser Resolution
+
+Set a specific browser window size:
+
+```hocon serenity.conf
+webdriver {
+  capabilities {
+    "goog:chromeOptions" {
+      args = [
+        "remote-allow-origins=*",
+        "window-size=1920,1080",
+        // ... other args
+      ]
+    }
+  }
+}
+```
+
+<Info>
+  Common resolutions:
+  - **1920x1080**: Full HD desktop
+  - **1366x768**: Common laptop
+  - **414x896**: iPhone XR/11
+  - **375x667**: iPhone SE
+</Info>
+
+## Additional Chrome Options
+
+### Download Behavior
+
+```hocon
+"goog:chromeOptions" {
+  prefs {
+    "download.default_directory" = "/path/to/downloads"
+    "download.prompt_for_download" = false
+    "download.directory_upgrade" = true
+    "safebrowsing.enabled" = true
+  }
+}
+```
+
+### User Agent Override
+
+```hocon
+"goog:chromeOptions" {
+  args = [
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  ]
+}
+```
+
+## Multiple Browser Support
+
+### Override Browser at Runtime
+
+```bash
+# Run with Firefox
+./gradlew test -Dwebdriver.driver=firefox
+
+# Run with Edge
+./gradlew test -Dwebdriver.driver=edge
+```
+
+### Browser-Specific Configuration
+
+```hocon serenity.conf
+webdriver {
+  driver = chrome
+}
+
+webdriver.firefox {
+  capabilities {
+    "moz:firefoxOptions" {
+      args = ["-headless"]
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### ChromeDriver Version Mismatch
+
+<Warning>
+  With `autodownload = true`, Selenium Manager handles driver versions automatically. If you're experiencing issues, ensure you're using Serenity BDD 4.0+ which includes Selenium 4.6+.
+</Warning>
+
+### Tests Failing in CI/CD
+
+Ensure these arguments are present for Docker/CI environments:
+
+```hocon
+args = [
+  "disable-gpu",
+  "disable-dev-shm-usage",
+  "no-sandbox",
+  "headless=new"
+]
+```
+
+### Element Not Visible Errors
+
+If elements aren't visible:
+
+1. Verify `start-maximized` is enabled
+2. Or set explicit window size: `"window-size=1920,1080"`
+3. Check if viewport size matches your responsive design breakpoints
+
+### SSL Certificate Errors
+
+Ensure `acceptInsecureCerts = true` is set in capabilities for QA/Staging environments.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep autodownload Enabled" icon="download">
+    Let Selenium Manager handle driver versions automatically
+  </Card>
+  <Card title="Use Incognito Mode" icon="mask">
+    Ensures clean test state without cached data
+  </Card>
+  <Card title="Maximize or Set Fixed Size" icon="expand">
+    Prevents element visibility issues
+  </Card>
+  <Card title="Test with Headless" icon="eye-slash">
+    Verify tests work in headless mode for CI/CD
+  </Card>
+</CardGroup>

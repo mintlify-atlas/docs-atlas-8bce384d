@@ -1,0 +1,460 @@
+---
+title: Screenplay Pattern
+description: Understanding the Screenplay pattern for maintainable and scalable test automation
+icon: masks-theater
+---
+
+## What is the Screenplay Pattern?
+
+The Screenplay pattern is an advanced design approach for automated acceptance testing that focuses on:
+
+- **User-centric testing** - Tests describe what users do, not how the system works
+- **Reusability** - Actions are composable and reusable across scenarios
+- **Readability** - Test code reads like natural language
+- **Maintainability** - Changes to UI require updates in only one place
+- **SOLID principles** - Single Responsibility, Open/Closed, and other best practices
+
+<Note>
+The Screenplay pattern was created by Serenity BDD and has become an industry standard for behavior-driven test automation.
+</Note>
+
+## Core Concepts
+
+The Screenplay pattern consists of five key abstractions:
+
+<CardGroup cols={2}>
+  <Card title="Actors" icon="user">
+    Represent users or systems that perform actions
+  </Card>
+  <Card title="Abilities" icon="wand-magic-sparkles">
+    Capabilities that actors possess (e.g., browse the web, call APIs)
+  </Card>
+  <Card title="Tasks" icon="list-check">
+    High-level business actions composed of multiple steps
+  </Card>
+  <Card title="Interactions" icon="hand-pointer">
+    Low-level actions like clicking, typing, or making API calls
+  </Card>
+  <Card title="Questions" icon="question">
+    Queries to verify the state of the system
+  </Card>
+</CardGroup>
+
+## Framework Setup
+
+### Dependencies
+
+The Screenplay pattern is enabled through two Serenity dependencies:
+
+```gradle
+dependencies {
+    // Core Screenplay pattern support
+    implementation "net.serenity-bdd:serenity-screenplay:4.0.46"
+    
+    // WebDriver interactions for UI testing
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:4.0.46"
+}
+```
+
+<Info>
+- **serenity-screenplay** provides the core abstractions (Actor, Task, Question)
+- **serenity-screenplay-webdriver** adds browser interaction capabilities
+</Info>
+
+### Current Implementation
+
+The framework is configured with Screenplay dependencies, allowing you to implement the pattern as tests evolve:
+
+```java
+package org.btg.practual.stepDefinitions;
+
+import io.cucumber.java.es.Dado;
+import io.cucumber.java.es.Cuando;
+import io.cucumber.java.es.Entonces;
+
+public class GeneracionReporteSteps {
+
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        System.out.println("Step: el usuario ingresa a la web de Chronos");
+    }
+    
+    // Additional step definitions...
+}
+```
+
+<Tip>
+The current step definitions provide a foundation. As the project grows, refactor these into Screenplay Tasks and Interactions for better maintainability.
+</Tip>
+
+## Screenplay Architecture
+
+### The Hierarchy
+
+```
+┌─────────────────────────────────────────────────┐
+│              Feature File (Gherkin)             │
+│  "Dado el usuario ingresa a la web de Chronos" │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│           Step Definition (Glue)                │
+│    el_usuario_ingresa_a_la_web_de_chronos()    │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│         Actor performs Task                     │
+│    actor.attemptsTo(NavigateToChronos.web())   │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│      Task executes Interactions                 │
+│  Open.browserOn("/chronos")                    │
+│  WaitFor.pageToLoad()                          │
+└─────────────────────────────────────────────────┘
+```
+
+## Implementation Guide
+
+### 1. Actors
+
+Actors represent the users or systems performing actions:
+
+```java
+import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
+import net.thucydides.core.annotations.Managed;
+import org.openqa.selenium.WebDriver;
+
+public class StepDefinitionBase {
+    
+    @Managed(driver = "chrome")
+    protected WebDriver driver;
+    
+    protected Actor usuario;
+    
+    @Before
+    public void setTheStage() {
+        usuario = Actor.named("Usuario de Chronos")
+                       .whoCan(BrowseTheWeb.with(driver));
+    }
+}
+```
+
+<Accordion title="Actor Explanation">
+- **Actor.named()** - Creates an actor with a descriptive name for reporting
+- **whoCan()** - Grants the actor abilities
+- **BrowseTheWeb.with(driver)** - Gives the actor the ability to interact with a web browser
+</Accordion>
+
+### 2. Abilities
+
+Abilities define what an actor can do. Common abilities include:
+
+| Ability | Purpose | Package |
+|---------|---------|----------|
+| `BrowseTheWeb` | Interact with web browsers | `serenity-screenplay-webdriver` |
+| `CallAnApi` | Make REST API calls | `serenity-screenplay-rest` |
+| `TakeNotes` | Remember information between steps | `serenity-screenplay` |
+
+```java
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
+
+// Grant web browsing ability
+actor.whoCan(BrowseTheWeb.with(driver));
+```
+
+### 3. Tasks
+
+Tasks represent high-level business actions. They are reusable and composable:
+
+```java
+import net.serenitybdd.screenplay.Task;
+import net.serenitybdd.screenplay.actions.Open;
+import static net.serenitybdd.screenplay.Tasks.instrumented;
+
+public class NavigateToChronos implements Task {
+    
+    private final String environment;
+    
+    public NavigateToChronos(String environment) {
+        this.environment = environment;
+    }
+    
+    public static NavigateToChronos web() {
+        return instrumented(NavigateToChronos.class, "qa");
+    }
+    
+    @Override
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+            Open.url("https://qa.btgpactual.com/chronos")
+        );
+    }
+}
+```
+
+<Tip>
+Use static factory methods like `web()` to create tasks with descriptive names that appear in Serenity reports.
+</Tip>
+
+### 4. Interactions
+
+Interactions are low-level actions provided by Serenity:
+
+```java
+import net.serenitybdd.screenplay.actions.*;
+import net.serenitybdd.screenplay.waits.WaitUntil;
+import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.*;
+
+// Common interactions
+actor.attemptsTo(
+    Open.url("https://example.com"),
+    Click.on("#login-button"),
+    Enter.theValue("username").into("#username-field"),
+    SelectFromOptions.byVisibleText("Option 1").from("#dropdown"),
+    WaitUntil.the("#result", isVisible())
+);
+```
+
+<CardGroup cols={2}>
+  <Card title="Open" icon="door-open">
+    Navigate to URLs or page objects
+  </Card>
+  <Card title="Click" icon="hand-pointer">
+    Click elements by CSS selector, XPath, or target
+  </Card>
+  <Card title="Enter" icon="keyboard">
+    Type text into input fields
+  </Card>
+  <Card title="SelectFromOptions" icon="list">
+    Select dropdown options
+  </Card>
+  <Card title="WaitUntil" icon="clock">
+    Wait for conditions to be met
+  </Card>
+  <Card title="Scroll" icon="arrows-up-down">
+    Scroll to elements or positions
+  </Card>
+</CardGroup>
+
+### 5. Questions
+
+Questions query the system state for assertions:
+
+```java
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.questions.Text;
+import net.serenitybdd.screenplay.questions.Visibility;
+import static org.hamcrest.Matchers.*;
+
+public class ReportGenerationStatus implements Question<Boolean> {
+    
+    public static ReportGenerationStatus isSuccessful() {
+        return new ReportGenerationStatus();
+    }
+    
+    @Override
+    public Boolean answeredBy(Actor actor) {
+        return Text.of("#status-message")
+                   .answeredBy(actor)
+                   .equals("Reporte generado exitosamente");
+    }
+}
+
+// Usage in step definitions
+actor.should(
+    seeThat(ReportGenerationStatus.isSuccessful(), is(true))
+);
+```
+
+## Practical Example
+
+Here's how to refactor the current step definitions to use Screenplay:
+
+### Before (Current Implementation)
+
+```java
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() {
+    System.out.println("Step: el usuario ingresa a la web de Chronos");
+}
+```
+
+### After (Screenplay Pattern)
+
+```java
+import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
+import net.thucydides.core.annotations.Managed;
+import org.openqa.selenium.WebDriver;
+
+public class GeneracionReporteSteps {
+    
+    @Managed(driver = "chrome")
+    private WebDriver driver;
+    
+    private Actor usuario;
+    
+    @Before
+    public void setTheStage() {
+        usuario = Actor.named("Usuario de Chronos")
+                       .whoCan(BrowseTheWeb.with(driver));
+    }
+    
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        usuario.attemptsTo(
+            NavigateToChronos.web()
+        );
+    }
+    
+    @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+    public void ingrese_los_datos_del_reporte(String reporte, String compania, String fecha) {
+        usuario.attemptsTo(
+            GenerateReport.withDetails(reporte, compania, fecha)
+        );
+    }
+    
+    @Entonces("se genera el reporte {string} de manera exitosa")
+    public void se_genera_el_reporte_exitosamente(String reporte) {
+        usuario.should(
+            seeThat(ReportGenerationStatus.isSuccessful(), is(true)),
+            seeThat(TheReportName.displayed(), equalTo(reporte))
+        );
+    }
+}
+```
+
+## Benefits
+
+<CardGroup cols={2}>
+  <Card title="Maintainability" icon="wrench">
+    Changes to UI elements require updates in only one place (the Interaction or Task class)
+  </Card>
+  <Card title="Reusability" icon="recycle">
+    Tasks and Questions can be reused across multiple scenarios and test suites
+  </Card>
+  <Card title="Readability" icon="book-open">
+    Test code reads like business language: `actor.attemptsTo(Login.withCredentials())`
+  </Card>
+  <Card title="Testability" icon="vial">
+    Tasks and Questions are independently testable and can be unit tested
+  </Card>
+  <Card title="Reporting" icon="chart-line">
+    Serenity reports show high-level Tasks in addition to low-level interactions
+  </Card>
+  <Card title="Scalability" icon="arrows-up-down-left-right">
+    Complex scenarios are composed from simple, well-tested building blocks
+  </Card>
+</CardGroup>
+
+## Page Objects with Screenplay
+
+Screenplay works well with Page Objects using the Target concept:
+
+```java
+import net.serenitybdd.screenplay.targets.Target;
+
+public class ChronosHomePage {
+    
+    public static final Target REPORT_TYPE_DROPDOWN = 
+        Target.the("report type dropdown")
+              .locatedBy("#report-type");
+    
+    public static final Target COMPANY_FIELD = 
+        Target.the("company field")
+              .locatedBy("input[name='company']");
+    
+    public static final Target DATE_PICKER = 
+        Target.the("date picker")
+              .locatedBy("#report-date");
+    
+    public static final Target GENERATE_BUTTON = 
+        Target.the("generate report button")
+              .locatedBy("button.generate");
+}
+```
+
+<Note>
+**Target** provides descriptive element locators that appear in Serenity reports, making it clear which elements were interacted with.
+</Note>
+
+## Best Practices
+
+### 1. Name Actors Descriptively
+
+```java
+// Good
+Actor administrador = Actor.named("Administrador del Sistema");
+Actor usuarioFinal = Actor.named("Usuario Final");
+
+// Avoid
+Actor actor1 = Actor.named("User");
+```
+
+### 2. Use Static Factory Methods
+
+```java
+// Good - reads naturally
+actor.attemptsTo(Login.withCredentials("user", "pass"));
+
+// Avoid - requires 'new' keyword
+actor.attemptsTo(new LoginTask("user", "pass"));
+```
+
+### 3. Compose Complex Tasks
+
+```java
+public class GenerateReport implements Task {
+    
+    public static GenerateReport withDetails(String type, String company, String date) {
+        return instrumented(GenerateReport.class, type, company, date);
+    }
+    
+    @Override
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+            SelectReportType.of(type),
+            EnterCompanyName.as(company),
+            ChooseDate.as(date),
+            Click.on(ChronosHomePage.GENERATE_BUTTON)
+        );
+    }
+}
+```
+
+### 4. Use Questions for Assertions
+
+```java
+// Good - reusable Question
+actor.should(seeThat(TheReportStatus.value(), equalTo("Success")));
+
+// Avoid - direct WebDriver calls in step definitions
+String status = driver.findElement(By.id("status")).getText();
+assertEquals("Success", status);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Task" icon="list-check">
+    Refactor a step definition into a reusable Task class
+  </Card>
+  <Card title="Define Page Targets" icon="bullseye">
+    Create Target definitions for elements on your application pages
+  </Card>
+  <Card title="Write Questions" icon="question">
+    Implement Question classes for common assertions
+  </Card>
+  <Card title="Compose Complex Scenarios" icon="sitemap">
+    Build high-level Tasks from simpler Tasks and Interactions
+  </Card>
+</CardGroup>
+
+<Info>
+For more details on the framework architecture, see [Framework Architecture](./architecture). To understand the project structure, visit [Project Structure](./project-structure).
+</Info>

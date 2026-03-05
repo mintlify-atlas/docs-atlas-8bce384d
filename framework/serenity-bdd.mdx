@@ -1,0 +1,366 @@
+---
+title: Serenity BDD Integration
+description: Deep dive into Serenity BDD configuration, capabilities, and reporting features
+icon: book-sparkles
+---
+
+## What is Serenity BDD?
+
+Serenity BDD (formerly Thucydides) is an open-source reporting library that provides:
+
+- **Living Documentation** - Automatic generation of illustrated, narrative reports
+- **Screenplay Pattern Support** - Built-in support for maintainable test design
+- **WebDriver Management** - Automatic browser driver management via Selenium Manager
+- **Rich Reporting** - Detailed test execution reports with screenshots and evidence
+- **Requirements Traceability** - Links tests to business requirements
+
+<Info>
+This project uses Serenity BDD version **4.0.46**, which includes the latest Selenium Manager integration and parallel reporting capabilities.
+</Info>
+
+## Gradle Configuration
+
+### Plugin Setup
+
+The Serenity Gradle plugin is configured at the top of `build.gradle`:
+
+```gradle
+plugins {
+    id 'java'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+}
+```
+
+This plugin provides essential tasks:
+- `test` - Runs tests and captures Serenity data
+- `aggregate` - Generates HTML reports from test results
+- `checkOutcomes` - Verifies test results and fails the build if tests failed
+
+### Dependencies
+
+The framework includes four core Serenity dependencies:
+
+```gradle
+ext {
+    serenityVersion = '4.0.46'
+}
+
+dependencies {
+    // 1. Serenity BDD Core & Cucumber
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+
+    // 2. Screenplay Pattern (Core and WebDriver for UI)
+    implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
+}
+```
+
+<Accordion title="Dependency Breakdown">
+
+**serenity-core**
+- Core Serenity BDD functionality
+- Report generation engine
+- Screenshot capture
+- Test lifecycle management
+
+**serenity-cucumber**
+- Cucumber integration
+- Gherkin step reporting
+- Scenario outcome tracking
+- Feature file requirements mapping
+
+**serenity-screenplay**
+- Screenplay pattern implementation
+- Actor, Task, and Question abstractions
+- Ability management
+- Consequence validation
+
+**serenity-screenplay-webdriver**
+- WebDriver-based Interactions
+- Browser abilities (BrowseTheWeb)
+- UI element interactions
+- Page object utilities
+
+</Accordion>
+
+## Serenity Configuration
+
+### Build-level Configuration
+
+In `build.gradle`, the Serenity block configures report generation:
+
+```gradle
+serenity {
+    testRoot = "org.btg.practual"
+    requirementsBaseDir = "src/test/resources/features"
+    reports = ["html"]
+}
+
+test.finalizedBy(aggregate)
+```
+
+- **testRoot** - Base package for test scanning
+- **requirementsBaseDir** - Location of feature files for requirements tracing
+- **reports** - Report formats to generate (HTML in this case)
+- **finalizedBy(aggregate)** - Automatically generates reports after tests run
+
+### Runtime Configuration (serenity.conf)
+
+The `src/test/resources/serenity.conf` file uses HOCON format for runtime settings:
+
+```hocon
+serenity {
+    take.screenshots = FOR_FAILURES
+    test.root = "org.btg.practual"
+    logging = QUIET
+    console.colors = true
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="take.screenshots" icon="camera">
+    **FOR_FAILURES** - Only captures screenshots when tests fail, reducing report size
+    
+    Other options: `FOR_EACH_ACTION`, `BEFORE_AND_AFTER_EACH_STEP`, `DISABLED`
+  </Card>
+  <Card title="test.root" icon="folder-tree">
+    **org.btg.practual** - Root package for test discovery
+    
+    Ensures Serenity correctly scans and reports all test classes
+  </Card>
+  <Card title="logging" icon="terminal">
+    **QUIET** - Minimal console output during test execution
+    
+    Other options: `VERBOSE`, `NORMAL`
+  </Card>
+  <Card title="console.colors" icon="palette">
+    **true** - Enables colored console output for better readability
+    
+    Useful for distinguishing pass/fail in terminal output
+  </Card>
+</CardGroup>
+
+## WebDriver Management
+
+### Selenium Manager Integration
+
+Serenity 4.0.46 includes automatic WebDriver management:
+
+```hocon
+webdriver {
+  driver = chrome
+  autodownload = true  # Enables Selenium Manager
+
+  capabilities {
+    browserName = "chrome"
+    acceptInsecureCerts = true
+
+    "goog:chromeOptions" {
+      args = [
+        "remote-allow-origins=*",
+        "start-maximized",
+        "incognito",
+        "disable-infobars",
+        "disable-gpu",
+        "disable-default-apps",
+        "disable-popup-blocking",
+        "disable-dev-shm-usage",
+        "no-sandbox"
+      ]
+    }
+  }
+}
+```
+
+<Note>
+**autodownload = true** enables Selenium Manager, which automatically downloads and manages the correct ChromeDriver version for your installed Chrome browser. No manual driver management required!
+</Note>
+
+### Chrome Options Explained
+
+- **remote-allow-origins=*** - Allows remote connections (required for newer Chrome versions)
+- **start-maximized** - Opens browser in full-screen mode
+- **incognito** - Runs in private browsing mode (clean state)
+- **disable-infobars** - Removes "Chrome is being controlled" banner
+- **disable-gpu** - Prevents GPU-related crashes in headless mode
+- **disable-dev-shm-usage** - Fixes shared memory issues in Docker/CI environments
+- **no-sandbox** - Required for running in containerized environments
+
+## Environment Management
+
+Serenity supports multiple test environments through the `environments` block:
+
+```hocon
+environments {
+  qa {
+    webdriver.base.url = "https://qa.btgpactual.com"
+    api.endpoint = "https://api-qa.btgpactual.com/v1"
+  }
+  stg {
+    webdriver.base.url = "https://stg.btgpactual.com"
+    api.endpoint = "https://api-stg.btgpactual.com/v1"
+  }
+}
+```
+
+<Tip>
+Switch environments at runtime using the `environment` system property:
+
+```bash
+./gradlew test -Denvironment=qa
+./gradlew test -Denvironment=stg
+```
+</Tip>
+
+## Report Generation
+
+### Automatic Report Creation
+
+Reports are generated automatically after test execution:
+
+```bash
+./gradlew test  # Runs tests and generates reports
+```
+
+The `test.finalizedBy(aggregate)` configuration ensures reports are created even if some tests fail.
+
+### Report Location
+
+Serenity reports are generated in:
+
+```
+target/site/serenity/
+├── index.html           # Main report entry point
+├── requirements.html    # Requirements coverage
+├── capabilities.html    # Test capabilities overview
+└── css/                 # Report styling
+```
+
+<Info>
+Open `target/site/serenity/index.html` in your browser to view the interactive test report.
+</Info>
+
+### Report Features
+
+<CardGroup cols={2}>
+  <Card title="Test Results Overview" icon="chart-pie">
+    High-level summary of test execution:
+    - Total scenarios executed
+    - Pass/fail/pending counts
+    - Execution time
+    - Success rate
+  </Card>
+  <Card title="Requirements Traceability" icon="link">
+    Maps tests to business requirements:
+    - Feature file linkage
+    - Coverage metrics
+    - Scenario grouping
+    - Tag-based filtering
+  </Card>
+  <Card title="Detailed Step Execution" icon="list-check">
+    Step-by-step test execution details:
+    - Each Gherkin step
+    - Execution duration
+    - Screenshots (on failure)
+    - Stack traces
+  </Card>
+  <Card title="Visual Evidence" icon="image">
+    Screenshots and artifacts:
+    - Failure screenshots
+    - Browser state capture
+    - Console logs
+    - Network activity
+  </Card>
+</CardGroup>
+
+## Serenity Reporter Integration
+
+The Cucumber runner uses Serenity's parallel reporter:
+
+```java
+@ConfigurationParameter(
+    key = PLUGIN_PROPERTY_NAME,
+    value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+)
+```
+
+- **SerenityReporterParallel** - Thread-safe reporter for parallel execution
+- **pretty** - Formatted console output
+- **html:target/cucumber-report.html** - Additional Cucumber HTML report
+
+<Note>
+The Serenity reporter runs alongside Cucumber's built-in reporters, capturing additional context for enhanced reporting.
+</Note>
+
+## Screenshot Capture
+
+Screenshots are automatically captured based on configuration:
+
+```hocon
+serenity {
+    take.screenshots = FOR_FAILURES
+}
+```
+
+### Screenshot Strategies
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| `FOR_FAILURES` | Only on test failures | Production (reduces report size) |
+| `FOR_EACH_ACTION` | After every interaction | Debugging complex scenarios |
+| `BEFORE_AND_AFTER_EACH_STEP` | Before/after each step | Detailed step verification |
+| `DISABLED` | No screenshots | Performance testing |
+
+<Tip>
+For debugging, temporarily change to `FOR_EACH_ACTION` to capture every interaction:
+
+```bash
+./gradlew test -Dserenity.take.screenshots=FOR_EACH_ACTION
+```
+</Tip>
+
+## Test Execution Options
+
+The `test` task is configured with Serenity-specific properties:
+
+```gradle
+test {
+    useJUnitPlatform()
+    
+    systemProperties System.getProperties()
+    systemProperty "serenity.test.root", "org.btg.practual"
+    systemProperty "serenity.project.name", "Makers BTG Tests"
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+}
+```
+
+- **useJUnitPlatform()** - Enables JUnit 5 test execution
+- **systemProperties** - Passes all system properties to tests
+- **serenity.project.name** - Sets the project name in reports
+- **showStandardStreams** - Displays console output during tests
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment-Specific Configs" icon="gear">
+    Define QA, STG, and PROD environments in `serenity.conf` to avoid hardcoding URLs in test code
+  </Card>
+  <Card title="Optimize Screenshot Capture" icon="camera">
+    Use `FOR_FAILURES` in CI/CD to reduce report size and execution time
+  </Card>
+  <Card title="Tag Your Scenarios" icon="tag">
+    Use Cucumber tags (`@smoke`, `@regression`, `@test`) to control which scenarios run
+  </Card>
+  <Card title="Review Reports Regularly" icon="eye">
+    Check Serenity reports for flaky tests, slow scenarios, and failure patterns
+  </Card>
+</CardGroup>
+
+<Info>
+Learn more about implementing tests using the [Screenplay Pattern](./screenplay-pattern) or explore the [Project Structure](./project-structure).
+</Info>

@@ -1,0 +1,448 @@
+---
+title: 'Data-Driven Tests'
+description: 'Learn how to run the same test with multiple data sets using Scenario Outlines and Examples tables'
+---
+
+## What are Data-Driven Tests?
+
+Data-driven testing allows you to run the same test scenario multiple times with different input data. In Cucumber, this is achieved using **Scenario Outlines** (`Esquema del escenario` in Spanish) combined with **Examples** tables (`Ejemplos`).
+
+This approach helps you:
+- Test multiple data combinations without duplicating code
+- Improve test coverage with minimal effort
+- Maintain readable, organized test scenarios
+- Easily add new test cases by adding rows to the Examples table
+
+## Scenario Outline vs Regular Scenario
+
+### Regular Scenario
+
+A regular scenario runs once with hardcoded values:
+
+```gherkin
+Escenario: Usuario genera un reporte específico
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+  Entonces se genera el reporte "417" de manera exitosa
+```
+
+**Result**: Runs 1 time with fixed values
+
+### Scenario Outline
+
+A scenario outline uses placeholders and runs once for each row in the Examples table:
+
+```gherkin
+Esquema del escenario: Usuario genera reportes para diferentes compañías
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+  Ejemplos:
+    | report | company    | report_date |
+    | 417    | compañia 1 | 2026-02-01  |
+    | 418    | compañia 2 | 2026-02-15  |
+    | 419    | compañia 3 | 2026-03-01  |
+```
+
+**Result**: Runs 3 times, once for each data row
+
+## Real Example: GeneracionReporte.feature
+
+Here's the actual data-driven test from our framework:
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+    Ejemplos:
+      | report | company    | report_date |
+      | 417    | compañia 1 | 2026-02-01  |
+```
+
+<Note>
+This test currently has one row in the Examples table, but you can easily add more rows to test additional scenarios.
+</Note>
+
+## Anatomy of a Scenario Outline
+
+<Steps>
+  <Step title="Define the Outline">
+    Use `Esquema del escenario:` instead of `Escenario:`
+  </Step>
+  
+  <Step title="Add Placeholders">
+    Use `"<placeholder_name>"` in your steps where values should vary
+  </Step>
+  
+  <Step title="Create Examples Table">
+    Add `Ejemplos:` section with a table of test data
+  </Step>
+  
+  <Step title="Define Column Headers">
+    First row contains column names matching your placeholders
+  </Step>
+  
+  <Step title="Add Data Rows">
+    Each subsequent row represents one test execution
+  </Step>
+</Steps>
+
+## Placeholder Syntax
+
+### In Gherkin Steps
+
+Wrap placeholders in angle brackets and quotes:
+
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+```
+
+- `"<report>"` - Placeholder for report number
+- `"<company>"` - Placeholder for company name
+- `"<report_date>"` - Placeholder for report date
+
+<Warning>
+Placeholder names in steps must EXACTLY match column names in the Examples table (case-sensitive).
+</Warning>
+
+### In Examples Table
+
+Column headers define the placeholder names:
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+```
+
+- First row: column names (must match placeholders)
+- Subsequent rows: actual test data
+- Use `|` to separate columns
+- Align columns for readability (optional but recommended)
+
+## How Parameters Flow to Step Definitions
+
+The step definition receives the actual values from the Examples table:
+
+### Feature File
+
+```gherkin
+Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+```
+
+### Step Definition
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+        String reporte, String compania, String fecha) {
+    System.out.println("Step: ingrese los datos del reporte " + reporte + 
+                      " para la compañia " + compania + 
+                      " segun la fecha " + fecha);
+}
+```
+
+### Parameter Mapping
+
+For the first (and only) row in our example:
+
+```
+Column: report      → Parameter: reporte  → Value: "417"
+Column: company     → Parameter: compania → Value: "compañia 1"
+Column: report_date → Parameter: fecha    → Value: "2026-02-01"
+```
+
+<Tip>
+The parameter names in Java (`reporte`, `compania`, `fecha`) don't need to match the column names (`report`, `company`, `report_date`). What matters is the **order** and **type** of parameters.
+</Tip>
+
+## Expanding with More Test Data
+
+Let's expand the GeneracionReporte test to cover more scenarios:
+
+```gherkin
+#language:es
+Característica: Generación de reportes desde la web de Chronos
+
+  @test @regression
+  Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+    Dado el usuario ingresa a la web de Chronos
+    Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+    Entonces se genera el reporte "<report>" de manera exitosa
+    Ejemplos:
+      | report | company    | report_date |
+      | 417    | compañia 1 | 2026-02-01  |
+      | 418    | compañia 2 | 2026-02-15  |
+      | 419    | compañia 1 | 2026-03-01  |
+      | 420    | compañia 3 | 2026-03-15  |
+      | 421    | compañia 2 | 2026-04-01  |
+```
+
+**Result**: This now runs **5 times** with different combinations:
+1. Report 417 for compañia 1 on 2026-02-01
+2. Report 418 for compañia 2 on 2026-02-15
+3. Report 419 for compañia 1 on 2026-03-01
+4. Report 420 for compañia 3 on 2026-03-15
+5. Report 421 for compañia 2 on 2026-04-01
+
+<Note>
+The step definition code doesn't change at all! Adding more test cases is as simple as adding more rows to the Examples table.
+</Note>
+
+## Multiple Examples Tables
+
+You can have multiple Examples tables for different test scenarios:
+
+```gherkin
+Esquema del escenario: Generacion de reportes mensuales
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+  
+  @happy-path
+  Ejemplos: Reportes válidos
+    | report | company    | report_date |
+    | 417    | compañia 1 | 2026-02-01  |
+    | 418    | compañia 2 | 2026-02-15  |
+  
+  @edge-cases
+  Ejemplos: Fechas límite
+    | report | company    | report_date |
+    | 419    | compañia 1 | 2026-12-31  |
+    | 420    | compañia 1 | 2026-01-01  |
+```
+
+**Result**: Runs 4 times total (2 from first table, 2 from second table)
+
+<Tip>
+You can tag individual Examples tables differently to run specific subsets of data.
+</Tip>
+
+## Best Practices
+
+<Accordion title="Keep Data Sets Meaningful">
+Each row should test a different scenario or edge case:
+
+**Good** - Different meaningful scenarios:
+```gherkin
+Ejemplos:
+  | report | company    | report_date | description              |
+  | 417    | compañia 1 | 2026-02-01  | # Normal case           |
+  | 418    | compañia 2 | 2026-12-31  | # Year-end report       |
+  | 419    | compañia 3 | 2026-01-01  | # Year-start report     |
+  | 420    | compañia 1 | 2026-02-29  | # Leap year date        |
+```
+
+**Bad** - Redundant data:
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+  | 417    | compañia 1 | 2026-02-02  | # Only date differs by 1 day
+  | 417    | compañia 1 | 2026-02-03  | # Not adding test value
+```
+</Accordion>
+
+<Accordion title="Use Descriptive Column Names">
+**Good**:
+```gherkin
+| report_number | company_name | report_date | expected_status |
+```
+
+**Bad**:
+```gherkin
+| r | c | d | s |
+```
+</Accordion>
+
+<Accordion title="Align Columns for Readability">
+**Good** - Aligned:
+```gherkin
+Ejemplos:
+  | report | company    | report_date |
+  | 417    | compañia 1 | 2026-02-01  |
+  | 418    | compañia 2 | 2026-02-15  |
+  | 419    | compañia 3 | 2026-03-01  |
+```
+
+**Acceptable** - Not aligned (still works):
+```gherkin
+Ejemplos:
+  | report | company | report_date |
+  | 417 | compañia 1 | 2026-02-01 |
+  | 418 | compañia 2 | 2026-02-15 |
+```
+</Accordion>
+
+<Accordion title="Consider Adding Comments">
+Add comments to explain why certain data is included:
+
+```gherkin
+Ejemplos:
+  | report | company    | report_date | # Scenario                    |
+  | 417    | compañia 1 | 2026-02-01  | # Happy path - normal date   |
+  | 418    | compañia 2 | 2026-02-29  | # Edge case - leap year      |
+  | 419    | compañia 3 | 2026-12-31  | # Boundary - end of year     |
+```
+</Accordion>
+
+<Accordion title="Don't Overuse Data Tables">
+If you have too many rows (20+), consider:
+- Breaking into multiple scenarios
+- Using external data sources (CSV, Excel, database)
+- Grouping related cases into separate Examples tables
+
+**When to use Scenario Outlines**:
+- Testing variations of the same flow (✓)
+- Boundary value testing (✓)
+- Testing different user roles or permissions (✓)
+
+**When NOT to use Scenario Outlines**:
+- Completely different test flows (use separate scenarios)
+- Complex conditional logic (breaks readability)
+- Test data that changes frequently (use external data)
+</Accordion>
+
+## Advanced: Different Data Types
+
+You can use various data types in your Examples table:
+
+```gherkin
+Esquema del escenario: Validación de diferentes tipos de datos
+  Cuando ingrese reporte "<report_id>" con precio "<price>" y cantidad "<quantity>" activo "<active>"
+  Entonces se procesa correctamente
+  
+  Ejemplos:
+    | report_id | price  | quantity | active |
+    | 417       | 99.99  | 10       | true   |
+    | 418       | 150.50 | 5        | false  |
+    | 419       | 0.01   | 1000     | true   |
+```
+
+In the step definition:
+
+```java
+@Cuando("ingrese reporte {string} con precio {string} y cantidad {string} activo {string}")
+public void ingrese_datos_reporte(String reportId, String price, String quantity, String active) {
+    // Convert strings to appropriate types
+    int id = Integer.parseInt(reportId);
+    double priceValue = Double.parseDouble(price);
+    int qty = Integer.parseInt(quantity);
+    boolean isActive = Boolean.parseBoolean(active);
+    
+    // Use the converted values
+    reportService.createReport(id, priceValue, qty, isActive);
+}
+```
+
+Or use type conversion directly:
+
+```java
+@Cuando("ingrese reporte {int} con precio {double} y cantidad {int} activo {word}")
+public void ingrese_datos_reporte(Integer reportId, Double price, Integer quantity, String active) {
+    boolean isActive = Boolean.parseBoolean(active);
+    reportService.createReport(reportId, price, quantity, isActive);
+}
+```
+
+<Warning>
+When using `{int}`, `{double}`, etc., the values in the Examples table should NOT have quotes:
+
+```gherkin
+# Correct for {int} and {double}
+Cuando ingrese reporte <report_id> con precio <price>
+Ejemplos:
+  | report_id | price  |
+  | 417       | 99.99  |
+
+# Correct for {string}
+Cuando ingrese reporte "<report_id>" con precio "<price>"
+Ejemplos:
+  | report_id | price  |
+  | 417       | 99.99  |
+```
+</Warning>
+
+## Test Execution and Reporting
+
+When running data-driven tests, each row is reported separately:
+
+```
+Scenario Outline: [Happy Path] Generacion exitosa de reporte # Row 1
+  ✓ Dado el usuario ingresa a la web de Chronos
+  ✓ Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+  ✓ Entonces se genera el reporte "417" de manera exitosa
+
+Scenario Outline: [Happy Path] Generacion exitosa de reporte # Row 2
+  ✓ Dado el usuario ingresa a la web de Chronos
+  ✓ Cuando ingrese los datos del reporte "418" para la compañia "compañia 2" segun la fecha "2026-02-15"
+  ✓ Entonces se genera el reporte "418" de manera exitosa
+
+2 Scenarios (2 passed)
+6 Steps (6 passed)
+```
+
+<Tip>
+If one row fails, the other rows still execute. This helps you identify which specific data combinations cause failures.
+</Tip>
+
+## Common Pitfalls
+
+### Placeholder Name Mismatch
+
+**Problem**:
+```gherkin
+Cuando ingrese el reporte "<report_id>"
+Ejemplos:
+  | report | # Column name doesn't match <report_id>
+  | 417    |
+```
+
+**Solution**: Match the names exactly:
+```gherkin
+Cuando ingrese el reporte "<report_id>"
+Ejemplos:
+  | report_id | # ✓ Matches
+  | 417       |
+```
+
+### Missing Quotes Around Placeholders
+
+**Problem**:
+```gherkin
+Cuando ingrese el reporte <report> # Missing quotes
+```
+
+**Solution**:
+```gherkin
+Cuando ingrese el reporte "<report>" # ✓ With quotes
+```
+
+### Inconsistent Step Definition Parameters
+
+**Problem**:
+```java
+// Step expects 3 parameters
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_datos(String reporte) { // Only 1 parameter!
+```
+
+**Solution**: Match parameter count and order:
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_datos(String reporte, String compania, String fecha) { // ✓ All 3 parameters
+```
+
+## Next Steps
+
+- [Feature Files](/writing-tests/feature-files) - Learn more Gherkin syntax
+- [Step Definitions](/writing-tests/step-definitions) - Implement parameter handling
+- [Test Examples](/writing-tests/test-examples) - See complete working examples

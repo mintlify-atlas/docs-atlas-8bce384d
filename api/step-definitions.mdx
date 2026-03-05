@@ -1,0 +1,285 @@
+---
+title: 'Step Definitions'
+description: 'API reference for GeneracionReporteSteps class implementing Cucumber step definitions'
+icon: 'code'
+---
+
+## Overview
+
+The `GeneracionReporteSteps` class contains step definition methods that implement the behavioral steps defined in feature files. Each method is annotated with Spanish Gherkin keywords (`@Dado`, `@Cuando`, `@Entonces`) and uses Cucumber expressions to match feature file steps.
+
+## Class Definition
+
+```java
+package org.btg.practual.stepDefinitions;
+
+import io.cucumber.java.es.Dado;
+import io.cucumber.java.es.Cuando;
+import io.cucumber.java.es.Entonces;
+
+public class GeneracionReporteSteps {
+    // Step definition methods
+}
+```
+
+## Step Definition Methods
+
+### el_usuario_ingresa_a_la_web_de_chronos
+
+<ParamField path="@Dado" type="Given Step" required>
+  **Annotation:** `@Dado("el usuario ingresa a la web de Chronos")`
+  
+  Implements the precondition step that navigates the user to the Chronos web application.
+</ParamField>
+
+#### Method Signature
+
+```java
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos()
+```
+
+#### Parameters
+
+This step takes no parameters.
+
+#### Description
+
+This step definition handles the initial setup for report generation tests. It represents the "Given" precondition where the user navigates to the Chronos web application before performing any actions.
+
+#### Current Implementation
+
+```java
+System.out.println("Step: el usuario ingresa a la web de Chronos");
+```
+
+<Note>
+  The current implementation is a placeholder that prints to console. In a complete implementation, this method would:
+  - Initialize the WebDriver instance
+  - Navigate to the Chronos application URL
+  - Verify the page loaded successfully
+  - Perform any necessary authentication
+</Note>
+
+#### Usage in Feature Files
+
+```gherkin
+Dado el usuario ingresa a la web de Chronos
+```
+
+---
+
+### ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha
+
+<ParamField path="@Cuando" type="When Step" required>
+  **Annotation:** `@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")`
+  
+  Implements the action step that enters report parameters into the Chronos application.
+</ParamField>
+
+#### Method Signature
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(
+    String reporte, 
+    String compania,
+    String fecha
+)
+```
+
+#### Parameters
+
+<ParamField path="reporte" type="String" required>
+  The report identifier or code to be generated.
+  
+  **Example:** `"417"`
+  
+  This value is extracted from the feature file's Examples table and passed to the method via Cucumber's `{string}` expression.
+</ParamField>
+
+<ParamField path="compania" type="String" required>
+  The company name for which the report should be generated.
+  
+  **Example:** `"compañia 1"`
+  
+  This parameter identifies the business entity or client whose data will be included in the report.
+</ParamField>
+
+<ParamField path="fecha" type="String" required>
+  The date for the report in ISO 8601 format (YYYY-MM-DD).
+  
+  **Example:** `"2026-02-01"`
+  
+  Specifies the reporting period or effective date for the generated report.
+</ParamField>
+
+#### Description
+
+This step definition handles the main action of entering report generation parameters into the Chronos web application. It receives three parameterized values from the feature file and uses them to fill in the report form.
+
+#### Current Implementation
+
+```java
+System.out.println("Step: ingrese los datos del reporte " + reporte + 
+                   " para la compañia " + compania + 
+                   " segun la fecha " + fecha);
+```
+
+<Note>
+  The current implementation is a placeholder that prints parameters to console. In a complete implementation, this method would:
+  - Locate form fields on the Chronos application
+  - Enter the report ID in the appropriate field
+  - Select or enter the company name
+  - Input the report date
+  - Submit the form or click the generate button
+</Note>
+
+#### Usage in Feature Files
+
+```gherkin
+Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+```
+
+The values in quotes are extracted and passed to the method parameters in order.
+
+---
+
+### se_genera_el_reporte_de_manera_exitosa
+
+<ParamField path="@Entonces" type="Then Step" required>
+  **Annotation:** `@Entonces("se genera el reporte {string} de manera exitosa")`
+  
+  Implements the verification step that confirms successful report generation.
+</ParamField>
+
+#### Method Signature
+
+```java
+@Entonces("se genera el reporte {string} de manera exitosa")
+public void se_genera_el_reporte_de_manera_exitosa(String reporte)
+```
+
+#### Parameters
+
+<ParamField path="reporte" type="String" required>
+  The report identifier that should have been successfully generated.
+  
+  **Example:** `"417"`
+  
+  This value is used to verify that the correct report was created.
+</ParamField>
+
+#### Description
+
+This step definition validates that the report generation process completed successfully. It represents the "Then" assertion that verifies the expected outcome of the test scenario.
+
+#### Current Implementation
+
+```java
+System.out.println("Step: se genera el reporte " + reporte + " de manera exitosa");
+```
+
+<Note>
+  The current implementation is a placeholder that prints to console. In a complete implementation, this method would:
+  - Wait for the report generation to complete
+  - Verify a success message is displayed
+  - Check that the report file exists or is downloadable
+  - Validate the report ID matches the expected value
+  - Assert that no error messages are present
+</Note>
+
+#### Usage in Feature Files
+
+```gherkin
+Entonces se genera el reporte "417" de manera exitosa
+```
+
+---
+
+## Cucumber Expressions
+
+All step definitions use Cucumber expressions with `{string}` parameter types:
+
+<Accordion title="Understanding {string} Parameters">
+  The `{string}` expression in Cucumber annotations matches text enclosed in double quotes in feature files.
+  
+  **Feature File:**
+  ```gherkin
+  Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+  ```
+  
+  **Step Definition:**
+  ```java
+  @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+  public void method(String reporte, String compania, String fecha)
+  ```
+  
+  Cucumber automatically extracts `"417"`, `"compañia 1"`, and `"2026-02-01"` and passes them as method parameters.
+</Accordion>
+
+## Complete Example Flow
+
+Here's how a feature file scenario maps to step definition methods:
+
+### Feature File
+
+```gherkin
+@test
+Esquema del escenario: [Happy Path] Generacion exitosa de reporte
+  Dado el usuario ingresa a la web de Chronos
+  Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+  Entonces se genera el reporte "<report>" de manera exitosa
+  Ejemplos:
+    | report | company    | report_date |
+    | 417    | compañia 1 | 2026-02-01  |
+```
+
+### Execution Flow
+
+1. **Step 1:** `el_usuario_ingresa_a_la_web_de_chronos()` is called
+2. **Step 2:** `ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha("417", "compañia 1", "2026-02-01")` is called
+3. **Step 3:** `se_genera_el_reporte_de_manera_exitosa("417")` is called
+
+## Spanish Gherkin Keywords
+
+This framework uses Spanish language Gherkin keywords:
+
+<ResponseField name="@Dado" type="annotation">
+  Equivalent to `@Given` in English. Represents preconditions or setup steps.
+</ResponseField>
+
+<ResponseField name="@Cuando" type="annotation">
+  Equivalent to `@When` in English. Represents actions or events.
+</ResponseField>
+
+<ResponseField name="@Entonces" type="annotation">
+  Equivalent to `@Then` in English. Represents expected outcomes or assertions.
+</ResponseField>
+
+## Implementation Guidelines
+
+<Accordion title="Best Practices for Step Definitions">
+  When implementing step definitions:
+  
+  1. **Keep steps atomic** - Each step should perform one clear action
+  2. **Use Page Objects** - Interact with UI elements through Page Object Model classes
+  3. **Handle waits properly** - Use explicit waits for dynamic content
+  4. **Add meaningful assertions** - Verify expected outcomes thoroughly
+  5. **Avoid hardcoding** - Use configuration files for URLs and test data
+  6. **Implement error handling** - Provide clear failure messages
+  7. **Follow naming conventions** - Use descriptive method names that match the Gherkin text
+</Accordion>
+
+## Package Location
+
+```
+org.btg.practual.stepDefinitions.GeneracionReporteSteps
+```
+
+**Source File:** `src/test/java/org/btg/practual/stepDefinitions/GeneracionReporteSteps.java`
+
+## Related Documentation
+
+- [CucumberRunner](/api/cucumber-runner) - Test runner configuration
+- [Test Scenarios](/api/test-scenarios) - Feature file structure and syntax

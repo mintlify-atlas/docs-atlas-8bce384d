@@ -1,0 +1,205 @@
+---
+title: 'Environment Configuration'
+description: 'Multi-environment support and runtime environment switching'
+icon: 'globe'
+---
+
+## Overview
+
+The Makers BTG Tests framework supports multiple test environments through the `serenity.conf` configuration file. This allows you to easily switch between QA, Staging, and other environments without modifying code.
+
+## Environment Configuration
+
+Environments are defined in the `environments` block of `serenity.conf`:
+
+```hocon serenity.conf
+environments {
+  qa {
+    webdriver.base.url = "https://qa.btgpactual.com"
+    api.endpoint = "https://api-qa.btgpactual.com/v1"
+  }
+  stg {
+    webdriver.base.url = "https://stg.btgpactual.com"
+    api.endpoint = "https://api-stg.btgpactual.com/v1"
+  }
+}
+```
+
+## Available Environments
+
+<CardGroup cols={2}>
+  <Card title="QA Environment" icon="vial">
+    Used for quality assurance testing with the latest features
+  </Card>
+  <Card title="Staging Environment" icon="server">
+    Pre-production environment that mirrors production configuration
+  </Card>
+</CardGroup>
+
+### QA Environment
+
+<ParamField path="webdriver.base.url" type="string">
+  **Base URL**: `https://qa.btgpactual.com`
+  
+  The root URL for web UI tests in the QA environment.
+</ParamField>
+
+<ParamField path="api.endpoint" type="string">
+  **API Endpoint**: `https://api-qa.btgpactual.com/v1`
+  
+  The base endpoint for API tests in the QA environment.
+</ParamField>
+
+### Staging Environment
+
+<ParamField path="webdriver.base.url" type="string">
+  **Base URL**: `https://stg.btgpactual.com`
+  
+  The root URL for web UI tests in the staging environment.
+</ParamField>
+
+<ParamField path="api.endpoint" type="string">
+  **API Endpoint**: `https://api-stg.btgpactual.com/v1`
+  
+  The base endpoint for API tests in the staging environment.
+</ParamField>
+
+## Switching Environments at Runtime
+
+### Using System Properties
+
+You can switch environments at runtime using the `environment` system property:
+
+<CodeGroup>
+
+```bash Gradle Command
+./gradlew clean test -Denvironment=qa
+```
+
+```bash Staging Environment
+./gradlew clean test -Denvironment=stg
+```
+
+```bash IDE Configuration
+# In IntelliJ IDEA VM Options:
+-Denvironment=qa
+```
+
+</CodeGroup>
+
+<Info>
+  If no environment is specified, Serenity will use the default configuration values (non-environment specific settings).
+</Info>
+
+## Accessing Environment Variables in Tests
+
+### Using EnvironmentSpecificConfiguration
+
+```java
+import net.serenitybdd.core.environment.EnvironmentSpecificConfiguration;
+import net.thucydides.core.util.EnvironmentVariables;
+
+public class ConfigurationHelper {
+    
+    public static String getBaseUrl(EnvironmentVariables environmentVariables) {
+        return EnvironmentSpecificConfiguration.from(environmentVariables)
+            .getProperty("webdriver.base.url");
+    }
+    
+    public static String getApiEndpoint(EnvironmentVariables environmentVariables) {
+        return EnvironmentSpecificConfiguration.from(environmentVariables)
+            .getProperty("api.endpoint");
+    }
+}
+```
+
+### In Screenplay Tasks
+
+```java
+import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.Task;
+import net.serenitybdd.screenplay.actions.Open;
+import net.thucydides.core.util.EnvironmentVariables;
+
+public class NavigateToHome implements Task {
+    
+    @Override
+    public <T extends Actor> void performAs(T actor) {
+        EnvironmentVariables env = Serenity.getCurrentSession()
+            .getSystemEnvironmentVariables();
+        String baseUrl = EnvironmentSpecificConfiguration.from(env)
+            .getProperty("webdriver.base.url");
+        
+        actor.attemptsTo(
+            Open.url(baseUrl)
+        );
+    }
+}
+```
+
+## Adding New Environments
+
+To add a new environment (e.g., production), update `serenity.conf`:
+
+```hocon serenity.conf
+environments {
+  qa {
+    webdriver.base.url = "https://qa.btgpactual.com"
+    api.endpoint = "https://api-qa.btgpactual.com/v1"
+  }
+  stg {
+    webdriver.base.url = "https://stg.btgpactual.com"
+    api.endpoint = "https://api-stg.btgpactual.com/v1"
+  }
+  prod {
+    webdriver.base.url = "https://www.btgpactual.com"
+    api.endpoint = "https://api.btgpactual.com/v1"
+  }
+}
+```
+
+<Warning>
+  Always verify environment URLs are correct before running tests. Incorrect URLs can lead to test failures or unintended actions on wrong environments.
+</Warning>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Environment-Specific Data">
+    Store environment-specific test data (credentials, test accounts) in separate configuration files or environment variables, never hardcode them in tests.
+  </Accordion>
+  
+  <Accordion title="Default to QA">
+    Configure your CI/CD pipeline to use QA as the default environment for automated test runs.
+  </Accordion>
+  
+  <Accordion title="Isolate Staging Tests">
+    Run staging tests separately from QA tests, especially before production deployments.
+  </Accordion>
+  
+  <Accordion title="Document Environment Differences">
+    Maintain documentation of any configuration differences between environments that might affect test behavior.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Environment Not Loading
+
+If your environment configuration isn't being applied:
+
+1. Verify the system property is correctly spelled: `-Denvironment=qa`
+2. Check that `serenity.conf` is in `src/test/resources/`
+3. Ensure the environment name matches exactly (case-sensitive)
+4. Review test logs for configuration loading errors
+
+### Wrong URLs Being Used
+
+```bash
+# Verify current environment configuration
+./gradlew clean test -Denvironment=qa --info | grep "base.url"
+```
+
+<Note>
+  Environment configuration is loaded at test startup. Changes to `serenity.conf` require restarting the test execution.
+</Note>

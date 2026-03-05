@@ -1,0 +1,443 @@
+---
+title: Reporting
+description: Understanding and working with Serenity BDD test reports
+---
+
+Serenity BDD generates comprehensive HTML reports that provide living documentation of your test execution.
+
+## Report Generation
+
+Reports are generated using the `aggregate` Gradle task:
+
+```bash
+./gradlew aggregate
+```
+
+### Automatic Report Generation
+
+The build.gradle configures automatic report generation after test execution:
+
+```groovy
+test.finalizedBy(aggregate)
+```
+
+This means running `./gradlew test` automatically triggers report aggregation when tests complete.
+
+<Tip>
+For the cleanest reports, run the full cycle:
+```bash
+./gradlew clean test aggregate
+```
+</Tip>
+
+## Report Location
+
+Serenity reports are generated in the `target/site/serenity/` directory:
+
+```
+target/site/serenity/
+├── index.html              # Main report entry point
+├── requirements.html       # Feature coverage overview
+├── capabilities.html       # Test capabilities view
+├── features/              # Individual feature reports
+├── stories/               # Story-level reports
+├── css/                   # Report styling
+├── images/                # Screenshots and diagrams
+└── js/                    # Interactive functionality
+```
+
+## Viewing Reports
+
+Open the main report in your browser:
+
+```bash
+open target/site/serenity/index.html
+```
+
+On Linux:
+
+```bash
+xdg-open target/site/serenity/index.html
+```
+
+On Windows:
+
+```bash
+start target/site/serenity/index.html
+```
+
+<Note>
+Reports are static HTML files that can be:
+- Opened directly in any browser
+- Served by any web server
+- Archived as build artifacts
+- Published to CI/CD dashboards
+</Note>
+
+## Report Contents
+
+Serenity reports provide multiple views of your test execution:
+
+### Home Dashboard
+
+The main dashboard (`index.html`) shows:
+
+<Steps>
+  <Step title="Test Results Summary">
+    High-level metrics:
+    - Total scenarios executed
+    - Pass/fail/pending counts
+    - Success rate percentage
+    - Test execution duration
+  </Step>
+
+  <Step title="Test Result Breakdown">
+    Visual representation:
+    - Pie chart of test outcomes
+    - Trend graphs over time
+    - Stability indicators
+  </Step>
+
+  <Step title="Features Overview">
+    Feature-level summary:
+    - Feature file coverage
+    - Scenarios per feature
+    - Feature-level pass rates
+  </Step>
+</Steps>
+
+### Requirements View
+
+The requirements page (`requirements.html`) displays:
+
+- **Feature Hierarchy** - Organized by directory structure from `src/test/resources/features/`
+- **Scenario Coverage** - Which scenarios cover each requirement
+- **Test Status** - Visual indicators for each feature's health
+- **Living Documentation** - Feature descriptions and scenarios as documentation
+
+<Accordion title="Requirements Configuration">
+  The `serenity` block in build.gradle configures requirements tracking:
+
+  ```groovy
+  serenity {
+      testRoot = "org.btg.practual"
+      requirementsBaseDir = "src/test/resources/features"
+      reports = ["html"]
+  }
+  ```
+
+  - `requirementsBaseDir` - Points to feature file location
+  - Serenity automatically builds requirement hierarchy from directory structure
+</Accordion>
+
+### Scenario Details
+
+Click any scenario to see detailed execution information:
+
+<Steps>
+  <Step title="Scenario Steps">
+    Complete step-by-step execution:
+    - Given/When/Then steps
+    - Step execution status
+    - Step duration
+    - Step arguments and data tables
+  </Step>
+
+  <Step title="Screenshots">
+    Visual evidence of test execution:
+    - Captured based on `serenity.take.screenshots` configuration
+    - Default: `FOR_FAILURES` (screenshots on failed scenarios)
+    - Each step can have associated screenshots
+    - Click to view full-size images
+
+    <Note>
+    Screenshot configuration is in `serenity.conf`:
+    ```hocon
+    serenity {
+        take.screenshots = FOR_FAILURES
+    }
+    ```
+
+    Options:
+    - `FOR_EACH_ACTION` - Screenshot after every step
+    - `BEFORE_AND_AFTER_EACH_STEP` - Screenshots before and after steps
+    - `AFTER_EACH_STEP` - Screenshot after each step
+    - `FOR_FAILURES` - Screenshots only on failure
+    - `DISABLED` - No screenshots
+    </Note>
+  </Step>
+
+  <Step title="Session Information">
+    Test execution context:
+    - Browser and driver details
+    - Test environment
+    - Execution timestamp
+    - Test duration
+  </Step>
+
+  <Step title="Stack Traces">
+    For failed scenarios:
+    - Complete error messages
+    - Full stack traces
+    - Failure point in scenario
+    - Associated screenshots at failure
+  </Step>
+</Steps>
+
+### Tag Reports
+
+View test execution organized by tags:
+
+- Filter by tag type (`@smoke`, `@regression`, etc.)
+- See all scenarios with specific tags
+- Analyze tag-based test coverage
+- Track tag-level success rates
+
+## Report Configuration
+
+Serenity report behavior is configured in multiple locations:
+
+### build.gradle Configuration
+
+```groovy
+serenity {
+    testRoot = "org.btg.practual"
+    requirementsBaseDir = "src/test/resources/features"
+    reports = ["html"]
+}
+```
+
+- `testRoot` - Base package for test classes
+- `requirementsBaseDir` - Location of feature files
+- `reports` - Report formats to generate (HTML, JSON, XML)
+
+### serenity.conf Configuration
+
+```hocon
+serenity {
+    take.screenshots = FOR_FAILURES
+    test.root = "org.btg.practual"
+    logging = QUIET
+    console.colors = true
+}
+```
+
+<Accordion title="Screenshot Settings">
+  Control when screenshots are captured:
+
+  ```bash
+  # Capture screenshots after every step
+  ./gradlew test -Dserenity.take.screenshots=AFTER_EACH_STEP
+
+  # Capture screenshots only on failures
+  ./gradlew test -Dserenity.take.screenshots=FOR_FAILURES
+
+  # Disable screenshots
+  ./gradlew test -Dserenity.take.screenshots=DISABLED
+  ```
+</Accordion>
+
+<Accordion title="Report Output Formats">
+  Generate multiple report formats:
+
+  ```groovy
+  serenity {
+      reports = ["html", "json", "xml"]
+  }
+  ```
+
+  - `html` - Interactive HTML reports
+  - `json` - Machine-readable JSON for integrations
+  - `xml` - XML format for legacy tools
+</Accordion>
+
+<Accordion title="Project Information">
+  Customize report branding:
+
+  ```groovy
+  systemProperty "serenity.project.name", "Makers BTG Tests"
+  ```
+
+  This appears in report headers and titles.
+</Accordion>
+
+## Report Generation Process
+
+Understanding how reports are built:
+
+<Steps>
+  <Step title="Test Execution Data Collection">
+    During test execution:
+    - Serenity listener captures test events
+    - Step-by-step execution data is recorded
+    - Screenshots are captured based on configuration
+    - All data is written to `target/site/serenity/` in JSON format
+  </Step>
+
+  <Step title="Aggregate Task Processing">
+    The `aggregate` task:
+    - Reads all JSON test data files
+    - Processes feature files for requirements
+    - Calculates statistics and metrics
+    - Generates HTML report pages
+    - Copies assets (CSS, JavaScript, images)
+  </Step>
+
+  <Step title="Report Assembly">
+    Final report assembly:
+    - Builds navigation structure
+    - Creates index pages
+    - Links scenarios to requirements
+    - Embeds screenshots
+    - Applies styling and interactivity
+  </Step>
+</Steps>
+
+## Report Plugins
+
+The CucumberRunner configures Serenity reporting integration:
+
+```java
+@ConfigurationParameter(
+    key = PLUGIN_PROPERTY_NAME,
+    value = "io.cucumber.core.plugin.SerenityReporterParallel,pretty,html:target/cucumber-report.html"
+)
+```
+
+- `SerenityReporterParallel` - Thread-safe Serenity integration
+- `pretty` - Console output formatter
+- `html:target/cucumber-report.html` - Cucumber's native HTML report
+
+<Note>
+The native Cucumber report (`target/cucumber-report.html`) is separate from Serenity reports and provides a simpler, lighter-weight view of results.
+</Note>
+
+## Living Documentation
+
+Serenity reports serve as living documentation:
+
+### Feature Documentation
+
+Feature file descriptions appear in reports:
+
+```gherkin
+Feature: User Authentication
+  As a BTG Pactual user
+  I want to log into the system securely
+  So that I can access my account information
+
+  @test @smoke
+  Scenario: Successful login with valid credentials
+    ...
+```
+
+The feature description becomes documentation in the requirements view.
+
+### Business Readability
+
+Reports are designed for non-technical stakeholders:
+- Plain language scenario descriptions
+- Visual step-by-step execution
+- Screenshot evidence
+- No technical jargon in scenario names
+
+### Requirements Traceability
+
+Organize features by business capability:
+
+```
+src/test/resources/features/
+├── authentication/
+│   ├── login.feature
+│   └── logout.feature
+├── portfolio/
+│   ├── view-holdings.feature
+│   └── transaction-history.feature
+└── trading/
+    ├── place-order.feature
+    └── cancel-order.feature
+```
+
+Reports reflect this structure, mapping tests to business requirements.
+
+## Report Artifacts
+
+### Archiving Reports
+
+In CI/CD pipelines, archive the entire report directory:
+
+```bash
+tar -czf serenity-report.tar.gz target/site/serenity/
+```
+
+### Publishing Reports
+
+Serve reports from a web server:
+
+```bash
+# Using Python
+python3 -m http.server 8000 --directory target/site/serenity/
+
+# Using Node.js
+npx http-server target/site/serenity/ -p 8000
+```
+
+Access at `http://localhost:8000`
+
+### Report Retention
+
+Consider report retention strategy:
+- Keep recent builds (last 30 days)
+- Archive release reports permanently
+- Delete old feature branch reports
+- Compress archived reports for storage
+
+## Troubleshooting Reports
+
+### No Reports Generated
+
+If `target/site/serenity/` is empty:
+
+1. Verify tests executed: `./gradlew test`
+2. Check for test execution data: `ls target/site/serenity/*.json`
+3. Run aggregate manually: `./gradlew aggregate`
+4. Check build logs for errors
+
+### Incomplete Reports
+
+If reports are missing scenarios:
+
+1. Ensure all tests completed (check for build timeouts)
+2. Verify `gradle.startParameter.continueOnFailure = true` in build.gradle
+3. Check for exceptions in test execution
+4. Run `./gradlew clean test aggregate` for fresh generation
+
+### Screenshots Missing
+
+If screenshots aren't in reports:
+
+1. Check screenshot configuration in `serenity.conf`:
+   ```hocon
+   serenity {
+       take.screenshots = FOR_FAILURES
+   }
+   ```
+2. Verify WebDriver is properly initialized
+3. Ensure tests actually interact with browser
+4. Check for screenshot directory permissions
+
+### Report Styling Issues
+
+If reports look broken:
+
+1. Ensure complete aggregate execution (no interruptions)
+2. Verify `target/site/serenity/css/` and `target/site/serenity/js/` exist
+3. Check browser console for loading errors
+4. Try different browser (Chrome, Firefox, Safari)
+
+<Tip>
+For the most reliable reports, always run the full clean test cycle:
+```bash
+./gradlew clean test aggregate
+```
+</Tip>

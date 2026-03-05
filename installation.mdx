@@ -1,0 +1,489 @@
+---
+title: Installation
+description: Set up your development environment for Makers BTG Tests
+---
+
+This guide walks you through setting up a complete development environment for the Makers BTG Tests framework, including Java, Gradle, IDE configuration, and dependency management.
+
+## System Requirements
+
+Before you begin, ensure your system meets these requirements:
+
+| Component | Minimum Version | Recommended |
+|-----------|----------------|-------------|
+| Java | 21 (LTS) | 21.0.3 or later |
+| RAM | 4 GB | 8 GB or more |
+| Disk Space | 2 GB | 5 GB (including IDE) |
+| Operating System | Windows 10, macOS 10.15, Ubuntu 20.04 | Latest stable versions |
+| Chrome Browser | 100+ | Latest stable |
+
+## Installing Java 21
+
+<Steps>
+  <Step title="Download Java 21">
+    Java 21 is a Long-Term Support (LTS) release required by this framework.
+    
+    <Tabs>
+      <Tab title="Windows">
+        Download from [Adoptium](https://adoptium.net/temurin/releases/?version=21):
+        1. Select **OpenJDK 21 (LTS)**
+        2. Choose **Windows x64**
+        3. Download the **MSI installer**
+        4. Run the installer and follow the wizard
+        5. Ensure "Set JAVA_HOME variable" is checked
+      </Tab>
+      
+      <Tab title="macOS">
+        Install via Homebrew:
+        ```bash
+        brew install openjdk@21
+        ```
+        
+        Link the installation:
+        ```bash
+        sudo ln -sfn /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk \
+          /Library/Java/JavaVirtualMachines/openjdk-21.jdk
+        ```
+      </Tab>
+      
+      <Tab title="Linux (Ubuntu/Debian)">
+        ```bash
+        sudo apt update
+        sudo apt install openjdk-21-jdk
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Verify Java Installation">
+    Open a new terminal and verify the installation:
+    
+    ```bash
+    java -version
+    ```
+    
+    Expected output:
+    ```
+    openjdk version "21.0.3" 2024-04-16 LTS
+    OpenJDK Runtime Environment Temurin-21.0.3+9 (build 21.0.3+9-LTS)
+    OpenJDK 64-Bit Server VM Temurin-21.0.3+9 (build 21.0.3+9-LTS, mixed mode)
+    ```
+    
+    Also verify the Java compiler:
+    ```bash
+    javac -version
+    ```
+    
+    Expected output:
+    ```
+    javac 21.0.3
+    ```
+    
+    <Warning>
+    If the version shows Java 8, 11, or 17, check your `JAVA_HOME` environment variable and ensure Java 21 is in your system PATH.
+    </Warning>
+  </Step>
+
+  <Step title="Configure JAVA_HOME (if needed)">
+    If Java isn't recognized, set the `JAVA_HOME` environment variable:
+    
+    <Tabs>
+      <Tab title="Windows">
+        1. Open **System Properties** → **Environment Variables**
+        2. Add new system variable:
+           - Variable name: `JAVA_HOME`
+           - Variable value: `C:\Program Files\Eclipse Adoptium\jdk-21.x.x`
+        3. Edit `Path` variable and add: `%JAVA_HOME%\bin`
+        4. Open a new terminal to test
+      </Tab>
+      
+      <Tab title="macOS/Linux">
+        Add to `~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`:
+        
+        ```bash
+        export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+        export PATH=$JAVA_HOME/bin:$PATH
+        ```
+        
+        Apply changes:
+        ```bash
+        source ~/.zshrc  # or ~/.bashrc
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## Gradle Setup
+
+The Makers BTG Tests project includes **Gradle Wrapper**, so you don't need to install Gradle separately. The wrapper ensures everyone uses the same Gradle version.
+
+<Info>
+Gradle Wrapper files (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) are included in the repository. These files manage Gradle installation automatically.
+</Info>
+
+### Using Gradle Wrapper
+
+<CodeGroup>
+```bash Linux/macOS
+# Make wrapper executable (first time only)
+chmod +x gradlew
+
+# Run Gradle tasks
+./gradlew --version
+./gradlew tasks
+./gradlew clean test
+```
+
+```bash Windows
+# Run Gradle tasks
+gradlew.bat --version
+gradlew.bat tasks
+gradlew.bat clean test
+```
+</CodeGroup>
+
+<Tip>
+Always use the wrapper (`./gradlew`) instead of a system-installed Gradle to ensure consistency across development environments.
+</Tip>
+
+## Project Dependencies
+
+The framework's dependencies are managed via Gradle and defined in `build.gradle`:
+
+```gradle build.gradle
+plugins {
+    id 'java'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '4.0.46'
+}
+
+group = 'org.btg.practual'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+ext {
+    serenityVersion = '4.0.46'
+    junitVersion = '5.10.1'
+}
+
+dependencies {
+    // Serenity BDD Core & Cucumber
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+
+    // Screenplay Pattern
+    implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
+
+    // JUnit 5
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+
+    // AssertJ for assertions
+    testImplementation "org.assertj:assertj-core:3.24.2"
+
+    // Cucumber JUnit Platform Engine
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:7.14.0"
+}
+```
+
+### Key Dependencies
+
+<AccordionGroup>
+  <Accordion title="Serenity BDD (4.0.46)">
+    Core framework providing:
+    - Living documentation and rich HTML reports
+    - Screenshot capture and step logging
+    - Requirements coverage tracking
+    - Integration with Cucumber and JUnit
+  </Accordion>
+  
+  <Accordion title="Serenity Screenplay (4.0.46)">
+    Screenplay pattern implementation:
+    - User-centric test design
+    - Tasks, Actions, Questions
+    - WebDriver integration for UI testing
+  </Accordion>
+  
+  <Accordion title="Cucumber (7.14.0)">
+    BDD framework supporting:
+    - Gherkin syntax for feature files
+    - Step definitions in multiple languages (Spanish supported)
+    - Scenario outlines with examples
+  </Accordion>
+  
+  <Accordion title="JUnit 5 (5.10.1)">
+    Modern test engine with:
+    - Platform Suite API for Cucumber integration
+    - Parallel test execution
+    - Flexible test configuration
+  </Accordion>
+  
+  <Accordion title="AssertJ (3.24.2)">
+    Fluent assertion library for:
+    - Readable, chainable assertions
+    - Rich error messages
+    - Type-safe validations
+  </Accordion>
+</AccordionGroup>
+
+### Downloading Dependencies
+
+When you first run Gradle, it automatically downloads all dependencies:
+
+```bash
+./gradlew build --refresh-dependencies
+```
+
+Dependencies are cached in:
+- **Linux/macOS**: `~/.gradle/caches/`
+- **Windows**: `C:\Users\<username>\.gradle\caches\`
+
+<Note>
+The initial download may take 5-10 minutes depending on your internet connection. Subsequent builds will be much faster as dependencies are cached.
+</Note>
+
+## IDE Setup
+
+### IntelliJ IDEA (Recommended)
+
+IntelliJ IDEA provides excellent support for Java, Gradle, and Cucumber.
+
+<Steps>
+  <Step title="Install IntelliJ IDEA">
+    Download from [JetBrains](https://www.jetbrains.com/idea/download/):
+    - **Community Edition** (free) - sufficient for this project
+    - **Ultimate Edition** (paid) - includes additional features
+    
+    Install and launch IntelliJ IDEA.
+  </Step>
+
+  <Step title="Open the Project">
+    1. Click **Open** or **File → Open**
+    2. Navigate to the `mkrs-btg-tests` directory
+    3. Select `build.gradle` and click **Open**
+    4. Choose **Open as Project**
+    5. IntelliJ will import the Gradle project automatically
+    
+    Wait for Gradle sync to complete (watch the progress bar at the bottom).
+  </Step>
+
+  <Step title="Install Required Plugins">
+    Go to **File → Settings → Plugins** (or **IntelliJ IDEA → Preferences → Plugins** on macOS):
+    
+    Install these plugins:
+    - **Cucumber for Java** - Gherkin syntax highlighting and navigation
+    - **Gherkin** - Feature file support
+    
+    Restart IntelliJ after installing plugins.
+  </Step>
+
+  <Step title="Configure Project SDK">
+    1. Go to **File → Project Structure → Project**
+    2. Set **SDK** to Java 21
+    3. Set **Language level** to "21 - Pattern matching for switch"
+    4. Click **Apply** and **OK**
+  </Step>
+
+  <Step title="Verify Setup">
+    Test the configuration:
+    1. Open `src/test/java/org/btg/practual/runners/CucumberRunner.java`
+    2. Right-click in the editor
+    3. Select **Run 'CucumberRunner'**
+    4. Tests should execute and results appear in the Run window
+  </Step>
+</Steps>
+
+<Tip>
+IntelliJ IDEA can navigate between Gherkin steps and their Java implementations. Hold **Ctrl** (or **Cmd** on macOS) and click on a step in a `.feature` file to jump to the step definition.
+</Tip>
+
+### Visual Studio Code
+
+If you prefer VS Code:
+
+<Steps>
+  <Step title="Install Extensions">
+    Install these extensions from the VS Code marketplace:
+    - **Extension Pack for Java** (Microsoft)
+    - **Cucumber (Gherkin) Full Support**
+    - **Gradle for Java**
+  </Step>
+
+  <Step title="Open the Project">
+    ```bash
+    cd mkrs-btg-tests
+    code .
+    ```
+    
+    VS Code will detect the Gradle project and Java files automatically.
+  </Step>
+
+  <Step title="Configure Java Home">
+    Add to `.vscode/settings.json`:
+    ```json
+    {
+      "java.configuration.runtimes": [
+        {
+          "name": "JavaSE-21",
+          "path": "/path/to/java-21",
+          "default": true
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Environment Verification
+
+Verify your complete setup:
+
+<Steps>
+  <Step title="Check Java and Gradle">
+    ```bash
+    java -version
+    ./gradlew --version
+    ```
+    
+    Both should show Java 21 and Gradle 8.x.
+  </Step>
+
+  <Step title="Build the Project">
+    ```bash
+    ./gradlew clean build
+    ```
+    
+    Expected output:
+    ```
+    BUILD SUCCESSFUL in 30s
+    ```
+  </Step>
+
+  <Step title="Run Tests">
+    ```bash
+    ./gradlew test aggregate
+    ```
+    
+    Tests should execute and generate a report in `target/site/serenity/index.html`.
+  </Step>
+
+  <Step title="Verify Report Generation">
+    Open the Serenity report:
+    ```bash
+    open target/site/serenity/index.html
+    ```
+    
+    You should see test results, requirements, and execution details.
+  </Step>
+</Steps>
+
+<Note>
+If all steps complete successfully, your environment is ready for test development!
+</Note>
+
+## Chrome Browser Setup
+
+The framework uses Chrome for UI testing with automatic driver management.
+
+### Install Chrome
+
+<Tabs>
+  <Tab title="Windows">
+    Download from [google.com/chrome](https://www.google.com/chrome/) and install.
+  </Tab>
+  
+  <Tab title="macOS">
+    ```bash
+    brew install --cask google-chrome
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    ```bash
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    sudo dpkg -i google-chrome-stable_current_amd64.deb
+    sudo apt-get install -f
+    ```
+  </Tab>
+</Tabs>
+
+### Selenium Manager
+
+The framework uses **Selenium Manager** for automatic ChromeDriver management. No manual driver download is needed!
+
+Configuration in `serenity.conf`:
+```hocon
+webdriver {
+  driver = chrome
+  autodownload = true  # Enables Selenium Manager
+}
+```
+
+<Info>
+Selenium Manager automatically downloads and manages the correct ChromeDriver version for your Chrome browser. This eliminates version mismatch issues.
+</Info>
+
+## Next Steps
+
+Your development environment is now ready! Continue with:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Run your first test and explore the framework
+  </Card>
+  
+  <Card title="Writing Tests" icon="pen" href="/writing-tests/feature-files">
+    Learn how to create new test scenarios
+  </Card>
+  
+  <Card title="Project Structure" icon="folder-tree" href="/framework/project-structure">
+    Understand the codebase organization
+  </Card>
+  
+  <Card title="Configuration" icon="sliders" href="/configuration/environments">
+    Customize the framework for your needs
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Gradle sync fails in IntelliJ">
+    1. Go to **File → Invalidate Caches → Invalidate and Restart**
+    2. Delete `.gradle` and `.idea` folders from the project
+    3. Re-import the project by opening `build.gradle`
+  </Accordion>
+  
+  <Accordion title="Wrong Java version is used">
+    Set `JAVA_HOME` explicitly:
+    ```bash
+    export JAVA_HOME=/path/to/java-21
+    ```
+    
+    Or configure in IntelliJ: **File → Project Structure → SDKs**
+  </Accordion>
+  
+  <Accordion title="Dependencies fail to download">
+    1. Check internet connection
+    2. Clear Gradle cache: `rm -rf ~/.gradle/caches/`
+    3. Retry with: `./gradlew build --refresh-dependencies`
+    4. If behind a proxy, configure in `~/.gradle/gradle.properties`
+  </Accordion>
+  
+  <Accordion title="Chrome not found during tests">
+    Ensure Chrome is installed and in your system PATH. For Linux headless environments, install Chrome or configure for remote execution.
+  </Accordion>
+  
+  <Accordion title="Permission denied: ./gradlew">
+    Make the wrapper executable:
+    ```bash
+    chmod +x gradlew
+    ```
+  </Accordion>
+</AccordionGroup>

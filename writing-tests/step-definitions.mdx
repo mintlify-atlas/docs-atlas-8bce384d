@@ -1,0 +1,316 @@
+---
+title: 'Step Definitions'
+description: 'Learn how to write Java step definitions that implement Gherkin scenarios'
+---
+
+## What are Step Definitions?
+
+Step definitions are Java methods that execute the steps written in your feature files. Each Gherkin step (`Dado`, `Cuando`, `Entonces`) must have a corresponding step definition that implements the actual test logic.
+
+Step definitions are stored in:
+```
+src/test/java/org/btg/practual/stepDefinitions/
+```
+
+## Basic Structure
+
+A step definition class contains:
+
+<Steps>
+  <Step title="Package Declaration">
+    Declare the package: `org.btg.practual.stepDefinitions`
+  </Step>
+  
+  <Step title="Import Annotations">
+    Import Spanish Cucumber annotations from `io.cucumber.java.es`
+  </Step>
+  
+  <Step title="Define Methods">
+    Create methods annotated with `@Dado`, `@Cuando`, or `@Entonces`
+  </Step>
+  
+  <Step title="Implement Logic">
+    Write the test automation code inside each method
+  </Step>
+</Steps>
+
+## Real Example: GeneracionReporteSteps.java
+
+Here's the actual step definition file from our framework:
+
+```java
+package org.btg.practual.stepDefinitions;
+
+import io.cucumber.java.es.Dado;
+import io.cucumber.java.es.Cuando;
+import io.cucumber.java.es.Entonces;
+
+public class GeneracionReporteSteps {
+
+    @Dado("el usuario ingresa a la web de Chronos")
+    public void el_usuario_ingresa_a_la_web_de_chronos() {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: el usuario ingresa a la web de Chronos");
+    }
+
+    @Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+    public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania,
+            String fecha) {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: ingrese los datos del reporte " + reporte + " para la compañia " + compania
+                + " segun la fecha " + fecha);
+    }
+
+    @Entonces("se genera el reporte {string} de manera exitosa")
+    public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+        // Write code here that turns the phrase above into concrete actions
+        System.out.println("Step: se genera el reporte " + reporte + " de manera exitosa");
+    }
+}
+```
+
+<Note>
+This step definition is located at: `src/test/java/org/btg/practual/stepDefinitions/GeneracionReporteSteps.java`
+</Note>
+
+## Spanish Cucumber Annotations
+
+### Required Imports
+
+Import the Spanish-specific annotations:
+
+```java
+import io.cucumber.java.es.Dado;
+import io.cucumber.java.es.Cuando;
+import io.cucumber.java.es.Entonces;
+```
+
+<Warning>
+Do NOT use the English annotations (`@Given`, `@When`, `@Then`) when working with Spanish Gherkin. Use the Spanish equivalents from `io.cucumber.java.es` package.
+</Warning>
+
+### Annotation Types
+
+| Annotation | Gherkin Keyword | Purpose |
+|------------|-----------------|--------|
+| `@Dado` | Dado | Implements Given steps (setup/preconditions) |
+| `@Cuando` | Cuando | Implements When steps (actions) |
+| `@Entonces` | Entonces | Implements Then steps (verification) |
+| `@Y` | Y | Implements And steps |
+
+## Parameter Passing
+
+### String Parameters
+
+Use `{string}` in the annotation and add a `String` parameter to the method:
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania,
+        String fecha) {
+    System.out.println("Step: ingrese los datos del reporte " + reporte + " para la compañia " + compania
+            + " segun la fecha " + fecha);
+}
+```
+
+When the feature file contains:
+```gherkin
+Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+```
+
+The method receives:
+- `reporte` = "417"
+- `compania` = "compañia 1"
+- `fecha` = "2026-02-01"
+
+### Integer Parameters
+
+Use `{int}` for numeric values:
+
+```java
+@Dado("el usuario tiene {int} reportes pendientes")
+public void el_usuario_tiene_reportes_pendientes(Integer cantidad) {
+    System.out.println("Reportes pendientes: " + cantidad);
+}
+```
+
+### Other Parameter Types
+
+| Placeholder | Java Type | Example |
+|-------------|-----------|--------|
+| `{string}` | String | "texto" |
+| `{int}` | Integer | 123 |
+| `{float}` | Float | 123.45 |
+| `{double}` | Double | 123.456789 |
+| `{bigdecimal}` | BigDecimal | 999.99 |
+| `{biginteger}` | BigInteger | 123456789 |
+| `{byte}` | Byte | 1 |
+| `{short}` | Short | 123 |
+| `{long}` | Long | 123456789 |
+| `{word}` | String | palabra (no spaces) |
+
+<Tip>
+Parameter order in the method signature must match the order they appear in the Gherkin step, from left to right.
+</Tip>
+
+## Method Naming Conventions
+
+Cucumber generates method names based on the step text:
+
+1. **Remove accents and special characters**:
+   - "compañía" → "compania"
+
+2. **Replace spaces with underscores**:
+   - "el usuario ingresa a la web de Chronos" → "el_usuario_ingresa_a_la_web_de_chronos"
+
+3. **Use lowercase**:
+   - All letters should be lowercase
+
+4. **Parameters become part of the name**:
+   - "para la compañia {string} segun la fecha {string}" → "para_la_compania_segun_la_fecha"
+
+### Examples from GeneracionReporteSteps.java
+
+```java
+// Gherkin: Dado el usuario ingresa a la web de Chronos
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() { }
+
+// Gherkin: Cuando ingrese los datos del reporte "<report>" para la compañia "<company>" segun la fecha "<report_date>"
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania, String fecha) { }
+
+// Gherkin: Entonces se genera el reporte "<report>" de manera exitosa
+@Entonces("se genera el reporte {string} de manera exitosa")
+public void se_genera_el_reporte_de_manera_exitosa(String reporte) { }
+```
+
+<Note>
+While method names follow these conventions, you can technically name them anything. However, following the convention makes code more maintainable and searchable.
+</Note>
+
+## Implementing Test Logic
+
+The example shows placeholder implementations. In a real test, you would add actual automation logic:
+
+### Example: Navigating to Chronos Web
+
+```java
+@Dado("el usuario ingresa a la web de Chronos")
+public void el_usuario_ingresa_a_la_web_de_chronos() {
+    // Real implementation would:
+    // 1. Initialize the WebDriver
+    // 2. Navigate to the Chronos URL
+    // 3. Wait for page to load
+    driver.get("https://chronos.btg.com");
+    wait.until(ExpectedConditions.titleContains("Chronos"));
+}
+```
+
+### Example: Entering Report Data
+
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania, String fecha) {
+    // Real implementation would:
+    // 1. Find and fill the report field
+    // 2. Select the company from dropdown
+    // 3. Enter the date
+    // 4. Submit the form
+    reportField.sendKeys(reporte);
+    companyDropdown.selectByVisibleText(compania);
+    dateField.sendKeys(fecha);
+    submitButton.click();
+}
+```
+
+### Example: Verifying Report Generation
+
+```java
+@Entonces("se genera el reporte {string} de manera exitosa")
+public void se_genera_el_reporte_de_manera_exitosa(String reporte) {
+    // Real implementation would:
+    // 1. Wait for success message
+    // 2. Verify report number matches
+    // 3. Check that report is downloadable
+    String successMessage = successMessageElement.getText();
+    assertTrue(successMessage.contains("Reporte " + reporte + " generado exitosamente"));
+    assertTrue(reportDownloadLink.isDisplayed());
+}
+```
+
+## Package Structure
+
+Organize step definitions by feature or functionality:
+
+```
+src/test/java/org/btg/practual/stepDefinitions/
+├── GeneracionReporteSteps.java
+├── LoginSteps.java
+├── CommonSteps.java
+└── ...
+```
+
+<Accordion title="Best Practices for Step Definitions">
+  - **One class per feature**: Keep step definitions organized by feature
+  - **Reusable steps**: Write generic steps that can be used across multiple scenarios
+  - **Clear parameter names**: Use descriptive parameter names (e.g., `reporte`, `compania`, `fecha`)
+  - **Avoid duplication**: Don't create multiple step definitions for the same step text
+  - **Keep methods focused**: Each method should do one thing
+  - **Add meaningful logging**: Use appropriate logging instead of System.out.println in production
+  - **Handle exceptions**: Add proper error handling and assertions
+  - **Use Page Objects**: Separate UI interaction logic into Page Object classes
+</Accordion>
+
+## Matching Steps to Definitions
+
+Cucumber matches Gherkin steps to step definitions by:
+
+1. **Exact text match** (ignoring parameters)
+2. **Regular expressions** (advanced)
+3. **Cucumber expressions** (using `{string}`, `{int}`, etc.)
+
+### Example Matching
+
+Feature file:
+```gherkin
+Cuando ingrese los datos del reporte "417" para la compañia "compañia 1" segun la fecha "2026-02-01"
+```
+
+Step definition:
+```java
+@Cuando("ingrese los datos del reporte {string} para la compañia {string} segun la fecha {string}")
+public void ingrese_los_datos_del_reporte_para_la_compañia_segun_la_fecha(String reporte, String compania, String fecha)
+```
+
+✅ **Match!** The text matches exactly when parameters are replaced with `{string}`.
+
+<Warning>
+If Cucumber cannot find a matching step definition, it will show an "Undefined step" error and suggest a stub method to implement.
+</Warning>
+
+## Common Errors
+
+### Undefined Step
+
+**Error**: Step is not implemented
+
+**Solution**: Create a step definition with the exact annotation text
+
+### Ambiguous Step
+
+**Error**: Multiple step definitions match the same step
+
+**Solution**: Make step definitions more specific or remove duplicates
+
+### Parameter Type Mismatch
+
+**Error**: Wrong parameter type (e.g., `{string}` passed to `Integer` parameter)
+
+**Solution**: Ensure annotation placeholder matches parameter type
+
+## Next Steps
+
+- [Feature Files](/writing-tests/feature-files) - Learn the Gherkin syntax
+- [Test Examples](/writing-tests/test-examples) - See complete end-to-end examples
+- [Data-Driven Tests](/writing-tests/data-driven-tests) - Work with multiple data sets
