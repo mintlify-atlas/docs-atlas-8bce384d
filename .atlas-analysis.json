@@ -1,0 +1,102 @@
+{
+  "projectType": "general",
+  "projectName": "Makers BTG Tests",
+  "projectDescription": "Automated testing framework for BTG Pactual applications using Serenity BDD, Cucumber, and the Screenplay pattern",
+  "theme": "aspen",
+  "primaryColor": "#2563eb",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Framework Guide",
+            "pages": [
+              "framework/architecture",
+              "framework/serenity-bdd",
+              "framework/screenplay-pattern",
+              "framework/project-structure"
+            ]
+          },
+          {
+            "group": "Writing Tests",
+            "pages": [
+              "writing-tests/feature-files",
+              "writing-tests/step-definitions",
+              "writing-tests/test-examples",
+              "writing-tests/data-driven-tests"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environments",
+              "configuration/webdriver",
+              "configuration/serenity-settings",
+              "configuration/gradle-config"
+            ]
+          },
+          {
+            "group": "Running Tests",
+            "pages": [
+              "running-tests/gradle-commands",
+              "running-tests/test-execution",
+              "running-tests/reporting",
+              "running-tests/ci-cd-integration"
+            ]
+          },
+          {
+            "group": "Best Practices",
+            "pages": [
+              "best-practices/code-organization",
+              "best-practices/naming-conventions",
+              "best-practices/troubleshooting",
+              "best-practices/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Components",
+            "pages": [
+              "api/cucumber-runner",
+              "api/step-definitions",
+              "api/test-scenarios"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Serenity BDD integration with detailed HTML reports",
+    "Cucumber BDD with Gherkin feature files in Spanish",
+    "Screenplay pattern for maintainable test architecture",
+    "Multi-environment support (QA, STG)",
+    "Chrome WebDriver automation with Selenium Manager",
+    "JUnit 5 test execution platform",
+    "Gradle build automation",
+    "Data-driven testing with scenario outlines"
+  ],
+  "publicApiSurface": [
+    "CucumberRunner - JUnit Platform Suite for test execution",
+    "GeneracionReporteSteps - Step definitions for report generation scenarios",
+    "serenity.conf - WebDriver and Serenity configuration",
+    "GeneracionReporte.feature - BDD scenarios for report generation",
+    "gradle test - Execute all tests",
+    "gradle aggregate - Generate Serenity reports"
+  ]
+}
